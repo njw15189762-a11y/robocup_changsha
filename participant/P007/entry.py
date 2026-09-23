@@ -188,7 +188,7 @@ class DeterministicAssignmentPolicy:
             drive = min(1.0, 2.5 * distance) * direction - 0.35 * velocity
         else:
             speed_command = min(1.0, 5.0 * distance)
-            damping = 1.2 if distance < 0.18 else 0.35
+            damping = 1.2 if distance < 0.18 else 0.0
             drive = speed_command * direction - damping * velocity
 
         drive += 0.9 * self._avoidance(observation)
