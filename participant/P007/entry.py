@@ -187,9 +187,9 @@ class DeterministicAssignmentPolicy:
         if target_rel is None:
             drive = min(1.0, 2.5 * distance) * direction - 0.35 * velocity
         else:
-            speed_command = min(1.0, 5.0 * distance)
             damping = 1.2 if distance < 0.18 else 0.0
-            drive = speed_command * direction - damping * velocity
+            # 两个动作分量分别饱和，允许对角方向同时使用两个轴的最大驱动力。
+            drive = np.clip(5.0 * target_rel, -1.0, 1.0) - damping * velocity
 
         drive += 0.9 * self._avoidance(observation)
         return np.clip(drive, -1.0, 1.0).astype(np.float32)
