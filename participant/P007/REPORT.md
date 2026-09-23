@@ -1,27 +1,52 @@
-# 策略研究报告（参赛模板 · 学习基线示例）
+# P007 策略研究报告
 
-## 训练方案
-stable-baselines3 PPO，MlpPolicy [64,64]，观测为与评测同源的 104 维 flatten
-（coverage_bench.spaces.flatten_observation），VecNormalize 仅归一化观测。
-训练环境：coverage_bench.envs.make_training_env，public suite 任务配置（case basic-0），
-独立训练种子序列（默认 7101），公开评测种子不用于训练采样。
+## 当前方案
 
-## 训练成本
-- 总环境步数：24576
-- 训练随机种子：7101
-- wall time：9.0 秒
-- CPU 型号：Windows-11-10.0.26200-SP0
-- 学习曲线：training_curve.csv（每曲线点记录总步数与最近 100 回合平均奖励），
-  冒烟曲线摘录：首行 total_steps=6144, mean_ep_reward_last100=0.560000；末行 total_steps=24576, mean_ep_reward_last100=0.260000
+当前提交为不依赖训练模型的确定性规则策略。每个机器人仅使用协议提供的局部观测，
+不访问全局状态，也不与其他策略实例共享可变数据。
 
-## 模型选择依据
-取训练结束时最终模型（固定策略，不做早停或 checkpoint 挑选）。
+对每个可见目标，机器人根据自身距离和可见队友的重构距离执行局部竞价。距离最小者
+获得目标；严格等距时由机器人编号打破平局。机器人选择自己赢得的最近目标，使用目标
+相对方向和自身速度构造带阻尼的追踪动作。没有目标可见时，各机器人前往按编号均匀
+分配的内圈航点。距离小于 0.25 的可见队友会产生斥力，用于降低碰撞风险。
 
-## 导出一致性
-tools/export_learning_baseline.py 导出 policy.npz（权重 + 归一化统计量）；
-train.py --check-export 对 256 个真实环境观测比较 SB3 前向与 numpy 前向的确定性动作，
-覆盖观测预处理、归一化、前向、动作裁剪与 dtype 转换，max|Δa| 实测 8.628e-08（容差 1e-5）。
+每个策略实例还会按目标编号保存最后一次观测到的绝对位置和步数，通过相邻位置差分
+估算目标速度。目标离开视野后，策略最多继续外推 4 步，并按公开的目标反射边界修正
+预测位置；记忆过期后重新进入搜索状态。
 
-## 定位
-给定训练预算下的学习效果与成本参考（spec BD-04）。学习策略未超过 P902 规则基线时，
-如实记录本报告数字，并结合学习曲线检查训练适配、训练预算与奖励设计。
+策略输出始终为形状 `(2,)` 的 `float32` 动作，并裁剪至 `[-1, 1]`。
+
+## 对照实验
+
+公开测试使用固定的 `configs/public-suite-v1.yaml` 与
+`configs/public-seeds-v1.json`，每个方案均运行 8 个回合。
+
+| 方案 | performance_score | basic mean_j | cooperation mean_j | 碰撞率 |
+| --- | ---: | ---: | ---: | ---: |
+| 官方模板 PPO | 66.6667 | 0.0000 | 0.1333 | 0.0000 |
+| 规则策略 v1 | 183.3333 | 0.0833 | 0.2833 | 0.0000 |
+| 规则策略 v2（历史追踪） | 183.3333 | 0.0833 | 0.2833 | 0.0000 |
+
+规则策略相对模板提升 116.6666 分，公开测试分数为模板的 2.75 倍。两次运行均为
+Windows 下的 `local_preview`，不能替代组织方正式核验。
+
+v2 的逐回合结果与 v1 完全相同，说明历史追踪在当前公开场景中尚未产生可测得增益。
+
+## 已知局限
+
+- 机器人只能比较当前可见队友，局部竞价不保证形成全局最优匹配。
+- 目标历史只在目标至少被观察一次后有效，无法解决从未发现目标的问题。
+- 无目标可见时使用固定搜索航点，对初始布局敏感。
+- `coop-0` 的公开回合没有产生覆盖，而 `coop-1` 的 `mean_j` 为 0.5667，场景间方差较大。
+- 当前仍保留模板 `policy.npz` 作为基线材料，但规则策略不会加载或使用该文件。
+
+## 复现方法
+
+在仓库根目录和 Python 3.12 评测环境中运行：
+
+```text
+python scripts/check_submission.py --submission participant/P007 --output outputs/P007/check
+python scripts/evaluate_one.py --submission participant/P007 --suite configs/public-suite-v1.yaml --seeds configs/public-seeds-v1.json --output outputs/P007/eval
+```
+
+输出目录必须不存在或为空。正式提交前应重新运行并保存对应代码版本信息。

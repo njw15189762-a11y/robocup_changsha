@@ -1,8 +1,26 @@
 # 实验日志
 
-- P903 学习基线：SB3 PPO（训练栈：make_training_env → pettingzoo_env_to_vec_env_v1 →
-  concat_vec_envs_v1(num_cpus=0) → FlattenCoverageVecEnv（与评测同源 flatten）→ VecMonitor →
-  VecNormalize(norm_obs=True, norm_reward=False, clip_obs=10.0)）。
-- 种子分离：训练种子 7101（训练随机种子与总环境步数记入 REPORT.md）；公开评测种子不用于训练采样。
-- 导出 policy.npz；导出一致性检查（--check-export，max|Δa| ≤ 1e-5）通过后入包。
-- 审计硬拒绝提交内 pickle.load（AT-AUD-02），训练栈归一化统计量由 vecnormalize.pkl 改存 vecnormalize-stats.npz，重跑冒烟管线与导出一致性检查通过。
+## 2026-09-23：E001 官方模板基线
+
+- 使用复制到 P007 目录的官方 PPO 模板及原始 `policy.npz`。
+- 本地公开评测 `status=ok`，`provenance=local_preview`。
+- `performance_score=66.6667`；basic `mean_j=0`，cooperation `mean_j=0.1333333`。
+- 两组平均碰撞率均为 0。
+
+## 2026-09-23：E002 确定性规则策略 v1
+
+- 唯一主要变量：将 `entry.py` 的模板 PPO 推理替换为确定性规则控制；官方套件、种子和评测程序不变。
+- 对可见目标执行局部距离竞价；较近机器人获得目标，等距时以较小机器人编号打破平局。
+- 没有可见目标时前往按机器人编号分配的内圈搜索航点；追踪使用带速度阻尼的控制器，并叠加近距离队友斥力。
+- 提交预检通过；8 个公开回合全部 `status=ok`，结果为本地预览。
+- `performance_score=183.3333`；basic `mean_j=0.0833333`，cooperation `mean_j=0.2833333`；两组平均碰撞率均为 0。
+- 相对 E001 提升 116.6666 分（2.75 倍）。
+- 失败场景明显：`coop-0` 的两次重复均为 0；`coop-1` 均为 0.5666667，说明搜索航点与局部分配对初始布局敏感。
+
+## 2026-09-23：E003 目标历史与速度估计
+
+- 在 E002 基础上只增加目标历史：记录最后绝对位置和可见步，利用相邻观测估算并平滑目标速度。
+- 目标离开视野后最多外推 4 步，并按目标场地边界进行反射修正；记忆过期后恢复原搜索行为。
+- 提交预检通过；8 个公开回合全部 `status=ok`，`performance_score=183.3333`，碰撞率仍为 0。
+- 各场景结果与 E002 完全相同，因此本次改动在公开套件上没有可测得的分数增益。
+- 可能原因：产生得分的轨迹没有经历影响决策的短暂丢失，零分场景则可能从一开始就没有发现目标，历史机制无法凭空建立轨迹。

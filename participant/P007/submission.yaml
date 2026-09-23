@@ -9,9 +9,9 @@ checkpoint_manifest:
     sha256: "aedfa4443847600df2fd5e59e0942bff0077849f6d27ea163baf8b4b18d5c728"
     size_bytes: 92186
 inference_lock: "requirements-infer.lock"
-method_type: "learning"
-train_command: "python train.py"
+method_type: "rule"
+train_command: null
 training_config_paths: []
 report_path: "REPORT.md"
 metadata:
-  description: "参赛模板：SB3 PPO 训练导出 numpy 前向推理（复制本目录并改成你的编号）"
+  description: "确定性规则策略：局部竞价分配、目标历史与速度预测、分散搜索及队友避碰"
