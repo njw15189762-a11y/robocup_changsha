@@ -131,24 +131,6 @@ class DeterministicAssignmentPolicy:
             self._assigned_target = candidates[0][0]
             return candidates[0][2]
 
-        # 即使所有可见目标看起来都已被认领，也不原地停下。
-        fallback = [
-            np.asarray(targets[j, :2], dtype=np.float64)
-            for j in range(min(self._num_targets, len(visible)))
-            if bool(visible[j])
-        ]
-        if fallback:
-            selected = min(
-                (
-                    (j, np.asarray(targets[j, :2], dtype=np.float64))
-                    for j in range(min(self._num_targets, len(visible)))
-                    if bool(visible[j])
-                ),
-                key=lambda item: float(np.linalg.norm(item[1])),
-            )
-            self._assigned_target = selected[0]
-            return selected[1]
-
         # 目标短暂离开视野时，继续执行上一次的目标分配。
         if self._assigned_target is not None:
             predicted = self._predicted_target_rel(self._assigned_target, observation)

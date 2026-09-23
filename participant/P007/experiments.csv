@@ -2,3 +2,4 @@ experiment_id,date,method,change,score,basic_mean_j,cooperation_mean_j,basic_col
 E001,2026-09-23,template_ppo,official copied baseline,66.666667,0.000000,0.133333,0.000000,0.000000,ok,outputs/P007/eval
 E002,2026-09-23,rule_v1,local auction assignment plus PD pursuit search waypoints and avoidance,183.333333,0.083333,0.283333,0.000000,0.000000,ok,outputs/P007/rule-v1-eval
 E003,2026-09-23,rule_v2_history,add four-step target memory smoothed velocity prediction and boundary reflection,183.333333,0.083333,0.283333,0.000000,0.000000,ok,outputs/P007/rule-v2-history-eval
+E004,2026-09-23,rule_v3_no_fallback,remove nearest-visible fallback after losing target auction,183.333333,0.083333,0.283333,0.000000,0.000000,ok,outputs/P007/rule-v3-no-fallback-eval
