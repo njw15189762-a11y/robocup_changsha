@@ -1,0 +1,1653 @@
+suite_schema_version: coverage-suite/1.0
+suite_id: P007-dev-suite-v1
+visibility: private-development
+task_version: coverage-task/1.0
+score_version: coverage-score/1.0
+schedule_id: P007-dev-schedule-v1
+groups:
+- group_id: basic
+  policy_repeats: 1
+  cases:
+  - case_id: dev-uniform-00
+    group_id: basic
+    scenario_seed: 31001
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: uniform
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-uniform-01
+    group_id: basic
+    scenario_seed: 31002
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: uniform
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-uniform-02
+    group_id: basic
+    scenario_seed: 31003
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: uniform
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-uniform-03
+    group_id: basic
+    scenario_seed: 31004
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: uniform
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-uniform-04
+    group_id: basic
+    scenario_seed: 31005
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: uniform
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-uniform-05
+    group_id: basic
+    scenario_seed: 31006
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: uniform
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-uniform-06
+    group_id: basic
+    scenario_seed: 31007
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: uniform
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-uniform-07
+    group_id: basic
+    scenario_seed: 31008
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: uniform
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-uniform-08
+    group_id: basic
+    scenario_seed: 31009
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: uniform
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-uniform-09
+    group_id: basic
+    scenario_seed: 31010
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: uniform
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-uniform-10
+    group_id: basic
+    scenario_seed: 31011
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: uniform
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-uniform-11
+    group_id: basic
+    scenario_seed: 31012
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: uniform
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-uniform-12
+    group_id: basic
+    scenario_seed: 31013
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: uniform
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-uniform-13
+    group_id: basic
+    scenario_seed: 31014
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: uniform
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-uniform-14
+    group_id: basic
+    scenario_seed: 31015
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: uniform
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-uniform-15
+    group_id: basic
+    scenario_seed: 31016
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: uniform
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-uniform-16
+    group_id: basic
+    scenario_seed: 31017
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: uniform
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-uniform-17
+    group_id: basic
+    scenario_seed: 31018
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: uniform
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-uniform-18
+    group_id: basic
+    scenario_seed: 31019
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: uniform
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-uniform-19
+    group_id: basic
+    scenario_seed: 31020
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: uniform
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+- group_id: cooperation
+  policy_repeats: 1
+  cases:
+  - case_id: dev-crossing-00
+    group_id: cooperation
+    scenario_seed: 32001
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: crossing
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-crossing-01
+    group_id: cooperation
+    scenario_seed: 32002
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: crossing
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-crossing-02
+    group_id: cooperation
+    scenario_seed: 32003
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: crossing
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-crossing-03
+    group_id: cooperation
+    scenario_seed: 32004
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: crossing
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-crossing-04
+    group_id: cooperation
+    scenario_seed: 32005
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: crossing
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-crossing-05
+    group_id: cooperation
+    scenario_seed: 32006
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: crossing
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-crossing-06
+    group_id: cooperation
+    scenario_seed: 32007
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: crossing
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-crossing-07
+    group_id: cooperation
+    scenario_seed: 32008
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: crossing
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-crossing-08
+    group_id: cooperation
+    scenario_seed: 32009
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: crossing
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-crossing-09
+    group_id: cooperation
+    scenario_seed: 32010
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: crossing
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-crossing-10
+    group_id: cooperation
+    scenario_seed: 32011
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: crossing
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-crossing-11
+    group_id: cooperation
+    scenario_seed: 32012
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: crossing
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-crossing-12
+    group_id: cooperation
+    scenario_seed: 32013
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: crossing
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-crossing-13
+    group_id: cooperation
+    scenario_seed: 32014
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: crossing
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-crossing-14
+    group_id: cooperation
+    scenario_seed: 32015
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: crossing
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-crossing-15
+    group_id: cooperation
+    scenario_seed: 32016
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: crossing
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-crossing-16
+    group_id: cooperation
+    scenario_seed: 32017
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: crossing
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-crossing-17
+    group_id: cooperation
+    scenario_seed: 32018
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: crossing
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-crossing-18
+    group_id: cooperation
+    scenario_seed: 32019
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: crossing
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
+  - case_id: dev-crossing-19
+    group_id: cooperation
+    scenario_seed: 32020
+    task_config:
+      config_schema_version: coverage-config/1.0
+      protocol_version: coverage-policy/1.0
+      task_version: coverage-task/1.0
+      release_state: development
+      num_agents: 3
+      num_targets: 3
+      horizon: 10
+      public:
+        map_half_extent: 1.0
+        dt: 0.1
+        robot_radius: 0.05
+        robot_mass: 1.0
+        drive_force: 1.0
+        damping: 0.25
+        robot_max_speed: 1.0
+        contact_force: 100.0
+        contact_margin: 0.001
+        target_radius: 0.15
+        target_max_speed: 0.2
+        sense_radius: 0.6
+        motion_kind: piecewise_heading_reflect
+        turn_interval_steps:
+        - 5
+        - 10
+        target_speed_fraction:
+        - 0.5
+        - 1.0
+        robot_boundary: clamp_outward_velocity
+        target_boundary: reflect_cover_inset
+      scenario:
+        layout_kind: crossing
+        robot_min_gap: 0.02
+        sampling_attempt_limit: 10000
+        crossing_band_fraction: 0.2
+        crossing_angle_jitter: 0.1
+        cluster_radius: 0.2
+      collision_weight: 0.2
