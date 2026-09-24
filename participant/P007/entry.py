@@ -12,6 +12,7 @@ class DeterministicAssignmentPolicy:
 
     _EPS = 1e-6
     _MEMORY_STEPS = 4
+    _VISIBLE_LEAD_SECONDS = 0.5
 
     def __init__(self) -> None:
         self._agent_index = 0
@@ -109,6 +110,22 @@ class DeterministicAssignmentPolicy:
                 return False
         return True
 
+    def _visible_pursuit_rel(
+        self,
+        target_index: int,
+        target_rel: np.ndarray,
+        observation,
+    ) -> np.ndarray:
+        """对可见目标加入短提前量，但不改变目标竞价使用的当前距离。"""
+        self_pos = np.asarray(observation["self_state"][:2], dtype=np.float64)
+        predicted = (
+            self_pos
+            + target_rel
+            + self._target_velocities[target_index] * self._VISIBLE_LEAD_SECONDS
+        )
+        predicted = self._reflect_prediction(predicted)
+        return predicted - self_pos
+
     def _select_target(self, observation) -> np.ndarray | None:
         visible = observation["target_visible"]
         targets = observation["targets"]
@@ -119,7 +136,8 @@ class DeterministicAssignmentPolicy:
                 continue
             rel = np.asarray(targets[target_index, :2], dtype=np.float64)
             if self._wins_target(rel, observation):
-                candidates.append((target_index, float(np.linalg.norm(rel)), rel))
+                pursuit_rel = self._visible_pursuit_rel(target_index, rel, observation)
+                candidates.append((target_index, float(np.linalg.norm(rel)), pursuit_rel))
 
         if candidates:
             candidates.sort(
