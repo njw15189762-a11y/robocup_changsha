@@ -1,0 +1,67 @@
+strategy_version: P007-training-strategy/1.0
+
+baseline:
+  rule_dev_score: 163.33333333333334
+  rule_public_score: 225.0
+
+common:
+  total_timesteps: 300000
+  checkpoint_interval: 50000
+  num_vec_envs: 4
+  train_seeds: [7101, 7201, 7301]
+  model:
+    algorithm: PPO
+    policy: MlpPolicy
+    net_arch: [64, 64]
+    activation: tanh
+  ppo:
+    n_steps: 512
+    batch_size: 256
+    learning_rate: 0.0003
+    gamma: 0.99
+    gae_lambda: 0.95
+  normalization:
+    observation: true
+    reward: false
+    clip_observation: 10.0
+
+data:
+  training_seed_start: 51001
+  model_selection:
+    uniform_seeds: [41001, 41020]
+    crossing_seeds: [42001, 42020]
+  final_dev_suite: dev/dev-suite-v1.yaml
+  public_suite: ../../configs/public-suite-v1.yaml
+
+experiments:
+  T000:
+    description: 模板学习基线，仅使用 uniform 和官方奖励
+    layout_weights:
+      uniform: 1.0
+      crossing: 0.0
+    reward:
+      kind: official
+
+  T001:
+    description: 仅把训练分布改成 uniform 和 crossing 均衡采样
+    layout_weights:
+      uniform: 0.5
+      crossing: 0.5
+    reward:
+      kind: official
+
+  T002:
+    description: 在 T001 基础上加入固定强度势函数奖励
+    layout_weights:
+      uniform: 0.5
+      crossing: 0.5
+    reward:
+      kind: official_plus_potential
+      potential_alpha: null
+
+acceptance:
+  minimum_dev_score_exclusive: 163.33333333333334
+  minimum_public_score_inclusive: 225.0
+  maximum_basic_collision_rate: 0.0
+  maximum_cooperation_collision_rate: 0.0
+  require_multiple_seed_confirmation: true
