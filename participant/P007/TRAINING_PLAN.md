@@ -46,3 +46,28 @@
   `outputs/P007/`。
 - 如果端到端 PPO 无法超过规则策略，下一方案是保留规则追踪，仅学习无目标可见时的
   搜索动作，而不是继续扩大端到端网络。
+
+## 本地训练环境
+
+- Conda 环境名：`robocup-train`
+- Python：3.12.14
+- PyTorch：2.14.0+cpu
+- stable-baselines3：2.9.0
+- SuperSuit：3.11.0
+- Gymnasium：1.3.0
+- PettingZoo：1.27.0
+- NumPy：2.5.3
+- `pip check`：通过
+- CUDA：当前不可用，训练使用 CPU
+
+在仓库根目录运行训练时，建议直接指定解释器，避免终端 PATH 指向其他 Python：
+
+```powershell
+C:\Users\lenovo\.conda\envs\robocup-train\python.exe participant/P007/train.py `
+  --total-steps 1000000 `
+  --out outputs/P007/training
+```
+
+环境建立后的冒烟测试使用 2 个并行环境，成功构造 `(6, 104)` 观测批次并完成
+3072 timesteps 的 PPO 更新；模型、归一化统计量和曲线保存在
+`outputs/P007/training-env-smoke/`。
