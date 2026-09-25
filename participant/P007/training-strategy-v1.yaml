@@ -5,8 +5,9 @@ baseline:
   rule_public_score: 225.0
 
 common:
-  total_timesteps: 300000
-  checkpoint_interval: 50000
+  # 4 个 PettingZoo 副本对应 12 条 agent 轨迹；以下数值均为 6144 的整数倍。
+  total_timesteps: 294912
+  checkpoint_interval: 49152
   num_vec_envs: 4
   train_seeds: [7101, 7201, 7301]
   model:
