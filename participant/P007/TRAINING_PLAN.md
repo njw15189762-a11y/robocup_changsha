@@ -39,17 +39,17 @@
 
 ## 风险控制
 
-- 当前 `enter` 是评测环境，没有安装 PyTorch、stable-baselines3 和 supersuit；训练应使用
-  单独环境，并严格按 `requirements-train.lock` 安装，避免污染评测环境。
+- 按当前本地约定，训练和评测统一使用 `enter`；该环境已经安装
+  `requirements-train.lock`，修改依赖后必须同时复查 `pip check` 和提交预检。
 - 奖励塑形只能存在于训练包装器中，不能修改官方 `coverage_bench`。
 - 所有训练实现、配置和记录限制在 `participant/P007/`，模型与大体积中间文件放在
   `outputs/P007/`。
 - 如果端到端 PPO 无法超过规则策略，下一方案是保留规则追踪，仅学习无目标可见时的
   搜索动作，而不是继续扩大端到端网络。
 
-## 本地训练环境
+## 本地训练与评测环境
 
-- Conda 环境名：`robocup-train`
+- Conda 环境名：`enter`
 - Python：3.12.14
 - PyTorch：2.14.0+cpu
 - stable-baselines3：2.9.0
@@ -63,11 +63,11 @@
 在仓库根目录运行训练时，建议直接指定解释器，避免终端 PATH 指向其他 Python：
 
 ```powershell
-C:\Users\lenovo\.conda\envs\robocup-train\python.exe participant/P007/train.py `
+C:\Users\lenovo\.conda\envs\enter\python.exe participant/P007/train.py `
   --total-steps 1000000 `
   --out outputs/P007/training
 ```
 
-环境建立后的冒烟测试使用 2 个并行环境，成功构造 `(6, 104)` 观测批次并完成
+安装训练依赖后的冒烟测试使用 2 个并行环境，成功构造 `(6, 104)` 观测批次并完成
 3072 timesteps 的 PPO 更新；模型、归一化统计量和曲线保存在
-`outputs/P007/training-env-smoke/`。
+`outputs/P007/training-enter-smoke/`。同一环境随后执行提交预检并通过。
