@@ -130,6 +130,7 @@ class PotentialRewardWrapper(BaseParallelWrapper):
         alpha: float,
         gamma: float,
         potential_kind: str = "independent_nearest",
+        zero_potential_on_episode_end: bool = False,
         total_world_steps: int | None = None,
         decay_start_fraction: float | None = None,
         decay_end_fraction: float | None = None,
@@ -142,6 +143,7 @@ class PotentialRewardWrapper(BaseParallelWrapper):
         if potential_kind not in ("independent_nearest", "assignment"):
             raise ValueError(f"不支持的势函数类型: {potential_kind}")
         self._potential_kind = potential_kind
+        self._zero_potential_on_episode_end = bool(zero_potential_on_episode_end)
         self._total_world_steps = total_world_steps
         self._decay_start_fraction = decay_start_fraction
         self._decay_end_fraction = decay_end_fraction
@@ -218,15 +220,26 @@ class PotentialRewardWrapper(BaseParallelWrapper):
 
     def step(self, actions):
         observations, rewards, terminations, truncations, infos = self.env.step(actions)
+        agent_ids = list(rewards)
+        episode_done = bool(agent_ids) and all(
+            bool(terminations[agent_id] or truncations[agent_id])
+            for agent_id in agent_ids
+        )
         current_potential = self._potential()
+        # 固定时域任务若要保持严格的势函数塑形性质，终止状态势函数必须为零。
+        # 仍保留真实 current_potential 写入历史，方便旧实验复现和调试。
+        next_potential = (
+            0.0
+            if self._zero_potential_on_episode_end and episode_done
+            else current_potential
+        )
         current_alpha = self._current_alpha()
         shaping = current_alpha * (
-            self._gamma * current_potential - self._previous_potential
+            self._gamma * next_potential - self._previous_potential
         )
         self._previous_potential = current_potential
         self._world_steps += 1
 
-        agent_ids = list(rewards)
         official = float(rewards[agent_ids[0]]) if agent_ids else 0.0
         self._official_return += official
         self._shaping_return += shaping
@@ -235,10 +248,6 @@ class PotentialRewardWrapper(BaseParallelWrapper):
             agent_id: float(reward + shaping)
             for agent_id, reward in rewards.items()
         }
-        episode_done = bool(agent_ids) and all(
-            bool(terminations[agent_id] or truncations[agent_id])
-            for agent_id in agent_ids
-        )
         for info in infos.values():
             terms = info.get("reward_terms")
             if terms is not None:
@@ -372,6 +381,9 @@ def build_env_stack(
             potential_kind=str(
                 reward_config.get("potential_kind", "independent_nearest")
             ),
+            zero_potential_on_episode_end=bool(
+                reward_config.get("zero_potential_on_episode_end", False)
+            ),
         )
     elif reward_config["kind"] == "official_plus_potential_schedule":
         if total_model_steps is None:
@@ -387,6 +399,9 @@ def build_env_stack(
             gamma=float(gamma),
             potential_kind=str(
                 reward_config.get("potential_kind", "independent_nearest")
+            ),
+            zero_potential_on_episode_end=bool(
+                reward_config.get("zero_potential_on_episode_end", False)
             ),
             total_world_steps=total_model_steps // transitions_per_world_step,
             decay_start_fraction=float(reward_config["decay_start_fraction"]),
@@ -788,7 +803,7 @@ def main():
     parser = argparse.ArgumentParser(description="P007 可复现 PPO 训练与 checkpoint 评测")
     parser.add_argument(
         "--experiment",
-        choices=("T000", "T001", "T002", "T003", "T004"),
+        choices=("T000", "T001", "T002", "T003", "T004", "T005A", "T005B"),
         default="T000",
     )
     parser.add_argument("--total-steps", type=int, default=None)

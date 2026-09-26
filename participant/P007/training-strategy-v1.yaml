@@ -84,6 +84,28 @@ experiments:
       potential_alpha: 1.0
       potential_kind: assignment
 
+  T005A:
+    description: 独立最近势函数，并在第10步将后继状态势函数归零
+    layout_weights:
+      uniform: 0.5
+      crossing: 0.5
+    reward:
+      kind: official_plus_potential
+      potential_alpha: 1.0
+      potential_kind: independent_nearest
+      zero_potential_on_episode_end: true
+
+  T005B:
+    description: 一对一匹配势函数，并在第10步将后继状态势函数归零
+    layout_weights:
+      uniform: 0.5
+      crossing: 0.5
+    reward:
+      kind: official_plus_potential
+      potential_alpha: 1.0
+      potential_kind: assignment
+      zero_potential_on_episode_end: true
+
 acceptance:
   minimum_dev_score_exclusive: 163.33333333333334
   minimum_public_score_inclusive: 225.0
