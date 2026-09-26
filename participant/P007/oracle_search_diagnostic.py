@@ -80,7 +80,7 @@ def _oracle_targets(
     robot_positions: np.ndarray,
     target_positions: np.ndarray,
 ) -> dict[int, int]:
-    """为严格搜索机器人选择真实但尚未被团队看到的目标。"""
+    """为当前允许介入的搜索机器人选择真实但尚未被团队看到的目标。"""
     if controller == "assignment":
         return _one_to_one_assignment(
             strict_agents,
@@ -141,7 +141,14 @@ def _oracle_action(
     return np.clip(drive, -1.0, 1.0).astype(np.float32)
 
 
-def run_episode(*, layout: str, seed: int, controller: str, scale: float) -> dict:
+def run_episode(
+    *,
+    layout: str,
+    seed: int,
+    controller: str,
+    scale: float,
+    scope: str,
+) -> dict:
     """运行一个固定场景，并统计发现时点和官方逐步指标。"""
     suite = load_suite(PUBLIC_SUITE)
     env = make_training_env(suite.groups[0].cases[0].task_config)
@@ -170,6 +177,18 @@ def run_episode(*, layout: str, seed: int, controller: str, scale: float) -> dic
 
     ever_seen = _visible_targets(observations)
     first_seen_steps = {target: 0 for target in ever_seen}
+    persistent_assignments: dict[int, int] = {}
+    initial_snapshot = env._current_snapshot
+    if initial_snapshot is None:
+        raise RuntimeError("环境全局状态尚未初始化")
+    minimum_target_distances = np.min(
+        np.linalg.norm(
+            initial_snapshot.robot_positions[:, None, :]
+            - initial_snapshot.target_positions[None, :, :],
+            axis=2,
+        ),
+        axis=0,
+    )
     step_coverage = []
     step_collision = []
     oracle_steps = 0
@@ -179,12 +198,17 @@ def run_episode(*, layout: str, seed: int, controller: str, scale: float) -> dic
             agent_id: policies[agent_id].act(observation)
             for agent_id, observation in observations.items()
         }
-        strict_agent_ids = [
+        eligible_modes = {DeterministicAssignmentPolicy._MODE_LEARNED_SEARCH}
+        if scope in {"all_search", "persistent"}:
+            eligible_modes.add(DeterministicAssignmentPolicy._MODE_RULE_SEARCH)
+        eligible_agent_ids = [
             agent_id
             for agent_id, policy in policies.items()
-            if policy._last_control_mode == policy._MODE_LEARNED_SEARCH
+            if policy._last_control_mode in eligible_modes
         ]
-        strict_indices = [int(agent_id.rsplit("_", 1)[1]) for agent_id in strict_agent_ids]
+        eligible_indices = [
+            int(agent_id.rsplit("_", 1)[1]) for agent_id in eligible_agent_ids
+        ]
         unseen_targets = [
             target
             for target in range(env.config.num_targets)
@@ -193,13 +217,54 @@ def run_episode(*, layout: str, seed: int, controller: str, scale: float) -> dic
         snapshot = env._current_snapshot
         if snapshot is None:
             raise RuntimeError("环境全局状态尚未初始化")
-        assignments = _oracle_targets(
-            controller,
-            strict_indices,
-            unseen_targets,
-            snapshot.robot_positions,
-            snapshot.target_positions,
-        )
+        if scope == "persistent":
+            # 搜索阶段选中的目标在进入视野后继续追踪，首次进入覆盖半径后才释放。
+            covered_targets = {
+                target
+                for target in range(env.config.num_targets)
+                if any(
+                    float(
+                        np.linalg.norm(
+                            snapshot.robot_positions[agent]
+                            - snapshot.target_positions[target]
+                        )
+                    )
+                    <= float(snapshot.target_radii[target])
+                    for agent in range(env.config.num_agents)
+                )
+            }
+            persistent_assignments = {
+                agent: target
+                for agent, target in persistent_assignments.items()
+                if target not in covered_targets
+            }
+            free_agents = [
+                agent
+                for agent in eligible_indices
+                if agent not in persistent_assignments
+            ]
+            reserved_targets = set(persistent_assignments.values())
+            available_targets = [
+                target for target in unseen_targets if target not in reserved_targets
+            ]
+            persistent_assignments.update(
+                _oracle_targets(
+                    controller,
+                    free_agents,
+                    available_targets,
+                    snapshot.robot_positions,
+                    snapshot.target_positions,
+                )
+            )
+            assignments = dict(persistent_assignments)
+        else:
+            assignments = _oracle_targets(
+                controller,
+                eligible_indices,
+                unseen_targets,
+                snapshot.robot_positions,
+                snapshot.target_positions,
+            )
         for agent_index, target_index in assignments.items():
             agent_id = f"agent_{agent_index}"
             actions[agent_id] = _oracle_action(
@@ -211,6 +276,21 @@ def run_episode(*, layout: str, seed: int, controller: str, scale: float) -> dic
             oracle_steps += 1
 
         observations, _, _, _, infos = env.step(actions)
+        next_snapshot = env._current_snapshot
+        if next_snapshot is None:
+            raise RuntimeError("环境推进后全局状态缺失")
+        current_distances = np.min(
+            np.linalg.norm(
+                next_snapshot.robot_positions[:, None, :]
+                - next_snapshot.target_positions[None, :, :],
+                axis=2,
+            ),
+            axis=0,
+        )
+        minimum_target_distances = np.minimum(
+            minimum_target_distances,
+            current_distances,
+        )
         currently_seen = _visible_targets(observations)
         for target in currently_seen - ever_seen:
             first_seen_steps[target] = step_index
@@ -230,6 +310,7 @@ def run_episode(*, layout: str, seed: int, controller: str, scale: float) -> dic
         "targets_seen": len(ever_seen),
         "first_seen_steps": first_seen_steps,
         "oracle_steps": oracle_steps,
+        "minimum_target_distances": minimum_target_distances.tolist(),
     }
 
 
@@ -241,6 +322,10 @@ def summarize(rows: list[dict]) -> dict:
         for step in row["first_seen_steps"].values()
         if int(step) > 0
     ]
+    minimum_distances = np.asarray(
+        [distance for row in rows for distance in row["minimum_target_distances"]],
+        dtype=np.float64,
+    )
     return {
         "mean_j": float(np.mean([row["mean_j"] for row in rows])),
         "mean_coverage": float(np.mean([row["mean_coverage"] for row in rows])),
@@ -254,6 +339,9 @@ def summarize(rows: list[dict]) -> dict:
             float(np.mean(discovery_steps)) if discovery_steps else None
         ),
         "oracle_steps": int(sum(row["oracle_steps"] for row in rows)),
+        "mean_minimum_target_distance": float(np.mean(minimum_distances)),
+        "targets_within_0_20": int(np.sum(minimum_distances <= 0.20)),
+        "targets_within_0_30": int(np.sum(minimum_distances <= 0.30)),
         "episodes": rows,
     }
 
@@ -261,6 +349,12 @@ def summarize(rows: list[dict]) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description="P007 H003 搜索 Oracle 诊断")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--scope",
+        choices=("strict", "all_search", "persistent"),
+        default="strict",
+        help="Oracle 介入严格搜索、全部搜索状态，或持续追到首次覆盖",
+    )
     args = parser.parse_args()
     config = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
 
@@ -280,6 +374,7 @@ def main() -> None:
                     seed=seed,
                     controller=controller,
                     scale=scale,
+                    scope=args.scope,
                 )
                 for seed in range(int(start), int(end) + 1)
             ]
@@ -288,6 +383,7 @@ def main() -> None:
         experiments.append(
             {
                 "controller": controller,
+                "scope": args.scope,
                 "residual_scale": scale,
                 "performance_score": score,
                 "groups": groups,
@@ -302,7 +398,14 @@ def main() -> None:
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
-        json.dumps({"experiment": "H003-oracle", "results": experiments}, indent=2),
+        json.dumps(
+            {
+                "experiment": "H003-oracle",
+                "scope": args.scope,
+                "results": experiments,
+            },
+            indent=2,
+        ),
         encoding="utf-8",
     )
     print(f"详细结果：{args.output}")
