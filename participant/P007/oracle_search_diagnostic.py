@@ -355,7 +355,17 @@ def main() -> None:
         default="strict",
         help="Oracle 介入严格搜索、全部搜索状态，或持续追到首次覆盖",
     )
+    parser.add_argument(
+        "--visible-approach-damping",
+        type=float,
+        default=None,
+        help="可选覆盖覆盖线外的可见追踪阻尼，供 H004 配对诊断",
+    )
     args = parser.parse_args()
+    if args.visible_approach_damping is not None:
+        DeterministicAssignmentPolicy._VISIBLE_APPROACH_DAMPING = float(
+            args.visible_approach_damping
+        )
     config = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
 
     experiments = []
@@ -402,6 +412,7 @@ def main() -> None:
             {
                 "experiment": "H003-oracle",
                 "scope": args.scope,
+                "visible_approach_damping": args.visible_approach_damping,
                 "results": experiments,
             },
             indent=2,
