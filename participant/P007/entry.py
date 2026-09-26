@@ -13,6 +13,10 @@ class DeterministicAssignmentPolicy:
     _EPS = 1e-6
     _MEMORY_STEPS = 4
     _VISIBLE_LEAD_SECONDS = 0.5
+    _MODE_VISIBLE_TRACK = "visible_track"
+    _MODE_MEMORY_TRACK = "memory_track"
+    _MODE_RULE_SEARCH = "visible_but_unassigned_rule_search"
+    _MODE_LEARNED_SEARCH = "strict_learned_search"
 
     def __init__(self) -> None:
         self._agent_index = 0
@@ -25,6 +29,7 @@ class DeterministicAssignmentPolicy:
         self._target_velocities = np.empty((0, 2), dtype=np.float64)
         self._last_seen_steps = np.empty(0, dtype=np.int64)
         self._assigned_target: int | None = None
+        self._last_control_mode = self._MODE_LEARNED_SEARCH
 
     def reset(self, context) -> None:
         self._agent_index = int(context.agent_index)
@@ -37,6 +42,7 @@ class DeterministicAssignmentPolicy:
         self._target_velocities = np.zeros((self._num_targets, 2), dtype=np.float64)
         self._last_seen_steps = np.full(self._num_targets, -1, dtype=np.int64)
         self._assigned_target = None
+        self._last_control_mode = self._MODE_LEARNED_SEARCH
 
     def _update_target_tracks(self, observation) -> None:
         """更新目标的绝对位置和经过平滑的速度估计。"""
@@ -126,7 +132,8 @@ class DeterministicAssignmentPolicy:
         predicted = self._reflect_prediction(predicted)
         return predicted - self_pos
 
-    def _select_target(self, observation) -> np.ndarray | None:
+    def _select_target(self, observation) -> tuple[np.ndarray | None, str | None]:
+        """选择追踪目标，并标记目标来自当前观测还是历史预测。"""
         visible = observation["target_visible"]
         targets = observation["targets"]
         candidates: list[tuple[int, float, np.ndarray]] = []
@@ -147,13 +154,13 @@ class DeterministicAssignmentPolicy:
                 )
             )
             self._assigned_target = candidates[0][0]
-            return candidates[0][2]
+            return candidates[0][2], self._MODE_VISIBLE_TRACK
 
         # 目标短暂离开视野时，继续执行上一次的目标分配。
         if self._assigned_target is not None:
             predicted = self._predicted_target_rel(self._assigned_target, observation)
             if predicted is not None:
-                return predicted
+                return predicted, self._MODE_MEMORY_TRACK
             self._assigned_target = None
 
         # 按目标编号为历史目标指定唯一机器人，避免多台机器人追逐同一段记忆。
@@ -167,8 +174,8 @@ class DeterministicAssignmentPolicy:
         if remembered:
             remembered.sort(key=lambda item: (item[1], item[0]))
             self._assigned_target = remembered[0][0]
-            return remembered[0][2]
-        return None
+            return remembered[0][2], self._MODE_MEMORY_TRACK
+        return None, None
 
     def _search_direction(self, observation) -> np.ndarray:
         """没有目标可追踪时，前往按机器人编号分配的内圈搜索航点。"""
@@ -176,6 +183,11 @@ class DeterministicAssignmentPolicy:
         phase = 2.0 * math.pi * self._agent_index / max(1, self._num_agents)
         waypoint = 0.35 * np.array([math.cos(phase), math.sin(phase)], dtype=np.float64)
         return waypoint - self_pos
+
+    def _learned_search_residual(self, observation) -> np.ndarray:
+        """返回学习搜索残差；H000 固定为零，用于验证混合路由不改变基线。"""
+        del observation
+        return np.zeros(2, dtype=np.float64)
 
     def _avoidance(self, observation) -> np.ndarray:
         """对附近的可见队友施加随距离增强的斥力。"""
@@ -195,7 +207,14 @@ class DeterministicAssignmentPolicy:
 
     def act(self, observation):
         self._update_target_tracks(observation)
-        target_rel = self._select_target(observation)
+        target_rel, tracking_mode = self._select_target(observation)
+        any_target_visible = bool(np.any(observation["target_visible"]))
+        if tracking_mode is not None:
+            self._last_control_mode = tracking_mode
+        elif any_target_visible:
+            self._last_control_mode = self._MODE_RULE_SEARCH
+        else:
+            self._last_control_mode = self._MODE_LEARNED_SEARCH
         desired = self._search_direction(observation) if target_rel is None else target_rel
 
         distance = float(np.linalg.norm(desired))
@@ -204,6 +223,11 @@ class DeterministicAssignmentPolicy:
 
         if target_rel is None:
             drive = min(1.0, 2.5 * distance) * direction - 0.35 * velocity
+            if self._last_control_mode == self._MODE_LEARNED_SEARCH:
+                residual = self._learned_search_residual(observation)
+                # H000 的残差严格为零；后续只替换本函数，不触碰追踪与安全控制。
+                if np.any(residual):
+                    drive += 0.35 * residual
         else:
             damping = 1.2 if distance < 0.18 else 0.0
             # 两个动作分量分别饱和，允许对角方向同时使用两个轴的最大驱动力。
