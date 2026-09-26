@@ -122,16 +122,50 @@ class PotentialRewardWrapper(BaseParallelWrapper):
     生成训练奖励，策略得到的观测仍是协议规定的局部观测。
     """
 
-    def __init__(self, env, *, alpha: float, gamma: float):
+    def __init__(
+        self,
+        env,
+        *,
+        alpha: float,
+        gamma: float,
+        total_world_steps: int | None = None,
+        decay_start_fraction: float | None = None,
+        decay_end_fraction: float | None = None,
+    ):
         super().__init__(env)
         if alpha <= 0.0:
             raise ValueError("势函数奖励系数 alpha 必须为正数")
         self._alpha = float(alpha)
         self._gamma = float(gamma)
+        self._total_world_steps = total_world_steps
+        self._decay_start_fraction = decay_start_fraction
+        self._decay_end_fraction = decay_end_fraction
+        self._world_steps = 0
         self._spec = get_protocol_spec()
         self._previous_potential = 0.0
         self._official_return = 0.0
         self._shaping_return = 0.0
+        self._alpha_sum = 0.0
+        if total_world_steps is not None:
+            if total_world_steps < 1:
+                raise ValueError("退火调度的总世界步数必须为正整数")
+            if not (
+                0.0 <= float(decay_start_fraction) < float(decay_end_fraction) <= 1.0
+            ):
+                raise ValueError("退火起止比例必须满足 0 <= start < end <= 1")
+
+    def _current_alpha(self) -> float:
+        """根据累计世界步数返回当前塑形系数。"""
+        if self._total_world_steps is None:
+            return self._alpha
+        progress = min(1.0, self._world_steps / self._total_world_steps)
+        start = float(self._decay_start_fraction)
+        end = float(self._decay_end_fraction)
+        if progress <= start:
+            return self._alpha
+        if progress >= end:
+            return 0.0
+        return self._alpha * (end - progress) / (end - start)
 
     def _potential(self) -> float:
         """计算 [0, 1] 范围内的全队目标接近度。"""
@@ -166,20 +200,24 @@ class PotentialRewardWrapper(BaseParallelWrapper):
         self._previous_potential = self._potential()
         self._official_return = 0.0
         self._shaping_return = 0.0
+        self._alpha_sum = 0.0
         return observations, infos
 
     def step(self, actions):
         observations, rewards, terminations, truncations, infos = self.env.step(actions)
         current_potential = self._potential()
-        shaping = self._alpha * (
+        current_alpha = self._current_alpha()
+        shaping = current_alpha * (
             self._gamma * current_potential - self._previous_potential
         )
         self._previous_potential = current_potential
+        self._world_steps += 1
 
         agent_ids = list(rewards)
         official = float(rewards[agent_ids[0]]) if agent_ids else 0.0
         self._official_return += official
         self._shaping_return += shaping
+        self._alpha_sum += current_alpha
         shaped_rewards = {
             agent_id: float(reward + shaping)
             for agent_id, reward in rewards.items()
@@ -193,10 +231,14 @@ class PotentialRewardWrapper(BaseParallelWrapper):
             if terms is not None:
                 terms["official_team_reward"] = official
                 terms["potential_shaping"] = float(shaping)
+                terms["potential_alpha"] = float(current_alpha)
                 terms["training_team_reward"] = float(official + shaping)
             if episode_done:
                 info["episode_official_return"] = float(self._official_return)
                 info["episode_shaping_return"] = float(self._shaping_return)
+                info["episode_mean_potential_alpha"] = float(
+                    self._alpha_sum / max(1, self.env.config.horizon)
+                )
         return observations, shaped_rewards, terminations, truncations, infos
 
 
@@ -246,6 +288,7 @@ class RecordingVecMonitor(VecMonitor):
         self._completed_rewards = []
         self._completed_official_returns = []
         self._completed_shaping_returns = []
+        self._completed_mean_alphas = []
         self._layout_episodes = Counter()
 
     def step_wait(self):
@@ -264,6 +307,10 @@ class RecordingVecMonitor(VecMonitor):
                     self._completed_shaping_returns.append(
                         float(infos[i]["episode_shaping_return"])
                     )
+                if "episode_mean_potential_alpha" in infos[i]:
+                    self._completed_mean_alphas.append(
+                        float(infos[i]["episode_mean_potential_alpha"])
+                    )
         return obs, rewards, dones, infos
 
     def get_episode_rewards(self):
@@ -281,6 +328,7 @@ class RecordingVecMonitor(VecMonitor):
         return {
             "official": self._completed_official_returns,
             "shaping": self._completed_shaping_returns,
+            "mean_alpha": self._completed_mean_alphas,
         }
 
 
@@ -290,6 +338,7 @@ def build_env_stack(
     layouts: tuple[str, ...] = ("uniform",),
     reward_config: dict | None = None,
     gamma: float = 0.99,
+    total_model_steps: int | None = None,
 ):
     """构造到 FlattenCoverageVecEnv 为止的训练栈（不含 VecMonitor/VecNormalize）。"""
     suite = load_suite(_PUBLIC_SUITE)
@@ -307,6 +356,22 @@ def build_env_stack(
             env,
             alpha=float(reward_config["potential_alpha"]),
             gamma=float(gamma),
+        )
+    elif reward_config["kind"] == "official_plus_potential_schedule":
+        if total_model_steps is None:
+            raise ValueError("退火奖励需要提供 total_model_steps")
+        transitions_per_world_step = num_vec_envs * case.task_config.num_agents
+        if total_model_steps % transitions_per_world_step != 0:
+            raise ValueError(
+                "总训练步数必须能被 num_vec_envs * num_agents 整除，才能精确执行退火"
+            )
+        env = PotentialRewardWrapper(
+            env,
+            alpha=float(reward_config["initial_alpha"]),
+            gamma=float(gamma),
+            total_world_steps=total_model_steps // transitions_per_world_step,
+            decay_start_fraction=float(reward_config["decay_start_fraction"]),
+            decay_end_fraction=float(reward_config["decay_end_fraction"]),
         )
     elif reward_config["kind"] != "official":
         raise ValueError(f"不支持的训练奖励类型: {reward_config['kind']}")
@@ -443,6 +508,9 @@ class TrainingCheckpointRecorder:
         columns = [
             "total_steps",
             "mean_episode_reward_last100",
+            "mean_official_return_last100",
+            "mean_shaping_return_last100",
+            "mean_potential_alpha_last100",
             "selection_score",
             "uniform_mean_j",
             "crossing_mean_j",
@@ -460,6 +528,9 @@ class TrainingCheckpointRecorder:
             values = [
                 row["total_steps"],
                 row["mean_episode_reward_last100"],
+                row["mean_official_return_last100"],
+                row["mean_shaping_return_last100"],
+                row["mean_potential_alpha_last100"],
                 row["model_selection"]["performance_score"],
                 groups["uniform"]["mean_j"],
                 groups["crossing"]["mean_j"],
@@ -538,6 +609,10 @@ class TrainingCheckpointRecorder:
                 float(np.mean(components["shaping"][-100:]))
                 if components["shaping"] else None
             ),
+            "mean_potential_alpha_last100": (
+                float(np.mean(components["mean_alpha"][-100:]))
+                if components["mean_alpha"] else None
+            ),
             "layout_episode_counts": self._monitor().get_layout_episode_counts(),
             "model_selection": validation,
         }
@@ -583,6 +658,7 @@ def train(args):
         layouts,
         reward_config=experiment["reward"],
         gamma=float(common["ppo"]["gamma"]),
+        total_model_steps=total_steps,
     )
     monitor = RecordingVecMonitor(flat_env)
     env = VecNormalize(monitor, norm_obs=True, norm_reward=False, clip_obs=10.0)
@@ -691,7 +767,9 @@ def check_export(args):
 
 def main():
     parser = argparse.ArgumentParser(description="P007 可复现 PPO 训练与 checkpoint 评测")
-    parser.add_argument("--experiment", choices=("T000", "T001", "T002"), default="T000")
+    parser.add_argument(
+        "--experiment", choices=("T000", "T001", "T002", "T003"), default="T000"
+    )
     parser.add_argument("--total-steps", type=int, default=None)
     parser.add_argument("--checkpoint-interval", type=int, default=None)
     parser.add_argument("--num-vec-envs", type=int, default=4)
