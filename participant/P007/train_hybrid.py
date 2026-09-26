@@ -1,4 +1,4 @@
-"""H001 混合策略训练：规则负责追踪，PPO 只学习严格搜索状态的动作残差。"""
+"""混合策略训练：规则负责追踪，PPO 只学习严格搜索状态的动作残差。"""
 
 from __future__ import annotations
 
@@ -65,10 +65,20 @@ class HybridSearchWrapper(BaseParallelWrapper):
 
     _MASK_KEY = "search_mask"
 
-    def __init__(self, env, *, residual_scale: float, discovery_bonus: float):
+    def __init__(
+        self,
+        env,
+        *,
+        residual_scale: float,
+        discovery_bonus: float,
+        discovery_schedule: str = "constant",
+    ):
         super().__init__(env)
         self._residual_scale = float(residual_scale)
         self._discovery_bonus = float(discovery_bonus)
+        if discovery_schedule not in {"constant", "remaining_linear"}:
+            raise ValueError(f"未知首次发现奖励日程: {discovery_schedule}")
+        self._discovery_schedule = discovery_schedule
         self._policies: dict[str, DeterministicAssignmentPolicy] = {}
         self._observations: dict = {}
         self._rule_actions: dict[str, np.ndarray] = {}
@@ -151,6 +161,19 @@ class HybridSearchWrapper(BaseParallelWrapper):
         drive += 0.9 * policy._avoidance(observation)
         return np.clip(drive, -1.0, 1.0).astype(np.float32)
 
+    def _discovery_weight(self) -> float:
+        """让早期发现获得更高奖励，末步发现因无法继续追踪而记为零。"""
+        if self._discovery_schedule == "constant":
+            return 1.0
+        horizon = int(self.env.config.horizon)
+        return float(
+            np.clip(
+                (horizon - self._team_steps) / max(1, horizon - 1),
+                0.0,
+                1.0,
+            )
+        )
+
     def step(self, actions):
         applied_actions = {}
         previous_masks = dict(self._search_masks)
@@ -183,12 +206,13 @@ class HybridSearchWrapper(BaseParallelWrapper):
                 and bool(observation["target_visible"][target_index])
             ]
             if discoverers:
-                value = self._discovery_bonus / (
+                weighted_bonus = self._discovery_bonus * self._discovery_weight()
+                value = weighted_bonus / (
                     self.env.config.num_targets * len(discoverers)
                 )
                 for agent_id in discoverers:
                     bonuses[agent_id] += value
-                self._discovery_return += self._discovery_bonus / self.env.config.num_targets
+                self._discovery_return += weighted_bonus / self.env.config.num_targets
         self._ever_seen_targets.update(newly_seen)
 
         shaped_rewards = {
@@ -380,6 +404,7 @@ def build_stack(
     layouts: tuple[str, ...],
     residual_scale: float,
     discovery_bonus: float,
+    discovery_schedule: str = "constant",
 ):
     suite = load_suite(PUBLIC_SUITE)
     env = make_training_env(suite.groups[0].cases[0].task_config)
@@ -393,6 +418,7 @@ def build_stack(
         env,
         residual_scale=residual_scale,
         discovery_bonus=discovery_bonus,
+        discovery_schedule=discovery_schedule,
     )
     env = AliveAgentsBridge(env)
     env = ss.pettingzoo_env_to_vec_env_v1(env)
@@ -417,6 +443,9 @@ def evaluate_model(model: MaskedPPO, norm_env: SearchMaskVecNormalize, config: d
     results = {}
     residual_scale = float(config["experiment"]["residual_scale"])
     discovery_bonus = float(config["experiment"]["discovery_bonus"])
+    discovery_schedule = str(
+        config["experiment"].get("discovery_schedule", "constant")
+    )
     for layout in ("uniform", "crossing"):
         start, end = config["model_selection"][f"{layout}_seeds"]
         rows = []
@@ -427,6 +456,7 @@ def evaluate_model(model: MaskedPPO, norm_env: SearchMaskVecNormalize, config: d
                 layouts=(layout,),
                 residual_scale=residual_scale,
                 discovery_bonus=discovery_bonus,
+                discovery_schedule=discovery_schedule,
             )
             raw = env.reset()
             step_j, step_coverage, step_collision = [], [], []
@@ -466,11 +496,12 @@ def evaluate_model(model: MaskedPPO, norm_env: SearchMaskVecNormalize, config: d
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="P007 H001 混合搜索训练")
+    parser = argparse.ArgumentParser(description="P007 混合搜索训练")
+    parser.add_argument("--config", type=Path, default=CONFIG_PATH)
     parser.add_argument("--total-steps", type=int, default=None)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
-    config = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
+    config = yaml.safe_load(args.config.read_text(encoding="utf-8"))
     training = config["training"]
     total_steps = int(args.total_steps or training["total_timesteps"])
     if args.out.exists() and any(args.out.iterdir()):
@@ -483,6 +514,9 @@ def main() -> None:
         layouts=tuple(config["experiment"]["layouts"]),
         residual_scale=float(config["experiment"]["residual_scale"]),
         discovery_bonus=float(config["experiment"]["discovery_bonus"]),
+        discovery_schedule=str(
+            config["experiment"].get("discovery_schedule", "constant")
+        ),
     )
     monitor = VecMonitor(flat_env)
     env = SearchMaskVecNormalize(
