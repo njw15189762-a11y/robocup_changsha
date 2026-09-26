@@ -58,7 +58,8 @@ experiments:
       crossing: 0.5
     reward:
       kind: official_plus_potential
-      potential_alpha: null
+      # 势函数范围为 [0, 1]；alpha=1 时，正常单步塑形量小于一次 1/3 覆盖奖励。
+      potential_alpha: 1.0
 
 acceptance:
   minimum_dev_score_exclusive: 163.33333333333334

@@ -114,6 +114,92 @@ class AliveAgentsBridge(BaseParallelWrapper):
         return obs, infos
 
 
+class PotentialRewardWrapper(BaseParallelWrapper):
+    """加入目标接近势函数奖励，仅供训练使用。
+
+    势函数取每个目标与最近机器人距离的截断接近度均值。距离超过感知半径时
+    接近度为零，因此不会使用全局状态向策略泄露远处目标方向；全局状态只用于
+    生成训练奖励，策略得到的观测仍是协议规定的局部观测。
+    """
+
+    def __init__(self, env, *, alpha: float, gamma: float):
+        super().__init__(env)
+        if alpha <= 0.0:
+            raise ValueError("势函数奖励系数 alpha 必须为正数")
+        self._alpha = float(alpha)
+        self._gamma = float(gamma)
+        self._spec = get_protocol_spec()
+        self._previous_potential = 0.0
+        self._official_return = 0.0
+        self._shaping_return = 0.0
+
+    def _potential(self) -> float:
+        """计算 [0, 1] 范围内的全队目标接近度。"""
+        state = np.asarray(self.env.state(), dtype=np.float64)
+        agent_capacity = self._spec.agent_capacity
+        target_capacity = self._spec.target_capacity
+        robot_table = state[: 5 * agent_capacity].reshape(agent_capacity, 5)
+        robot_exists = state[5 * agent_capacity : 6 * agent_capacity] > 0.5
+        target_offset = 6 * agent_capacity
+        target_table = state[
+            target_offset : target_offset + 5 * target_capacity
+        ].reshape(target_capacity, 5)
+        target_exists = state[
+            target_offset + 5 * target_capacity : target_offset + 6 * target_capacity
+        ] > 0.5
+
+        robot_positions = robot_table[robot_exists, :2]
+        target_positions = target_table[target_exists, :2]
+        if len(robot_positions) == 0 or len(target_positions) == 0:
+            return 0.0
+
+        distances = np.linalg.norm(
+            robot_positions[:, None, :] - target_positions[None, :, :], axis=2
+        )
+        nearest = np.min(distances, axis=0)
+        sense_radius = float(self.env.config.public.sense_radius)
+        closeness = 1.0 - np.clip(nearest / sense_radius, 0.0, 1.0)
+        return float(np.mean(closeness))
+
+    def reset(self, seed=None, options=None):
+        observations, infos = self.env.reset(seed=seed, options=options)
+        self._previous_potential = self._potential()
+        self._official_return = 0.0
+        self._shaping_return = 0.0
+        return observations, infos
+
+    def step(self, actions):
+        observations, rewards, terminations, truncations, infos = self.env.step(actions)
+        current_potential = self._potential()
+        shaping = self._alpha * (
+            self._gamma * current_potential - self._previous_potential
+        )
+        self._previous_potential = current_potential
+
+        agent_ids = list(rewards)
+        official = float(rewards[agent_ids[0]]) if agent_ids else 0.0
+        self._official_return += official
+        self._shaping_return += shaping
+        shaped_rewards = {
+            agent_id: float(reward + shaping)
+            for agent_id, reward in rewards.items()
+        }
+        episode_done = bool(agent_ids) and all(
+            bool(terminations[agent_id] or truncations[agent_id])
+            for agent_id in agent_ids
+        )
+        for info in infos.values():
+            terms = info.get("reward_terms")
+            if terms is not None:
+                terms["official_team_reward"] = official
+                terms["potential_shaping"] = float(shaping)
+                terms["training_team_reward"] = float(official + shaping)
+            if episode_done:
+                info["episode_official_return"] = float(self._official_return)
+                info["episode_shaping_return"] = float(self._shaping_return)
+        return observations, shaped_rewards, terminations, truncations, infos
+
+
 class FlattenCoverageVecEnv(VecEnvWrapper):
     """把 agent 拆分后的 Dict 观测压平为与评测侧完全一致的 104 维向量。"""
 
@@ -158,6 +244,8 @@ class RecordingVecMonitor(VecMonitor):
     def __init__(self, venv):
         super().__init__(venv)
         self._completed_rewards = []
+        self._completed_official_returns = []
+        self._completed_shaping_returns = []
         self._layout_episodes = Counter()
 
     def step_wait(self):
@@ -168,6 +256,14 @@ class RecordingVecMonitor(VecMonitor):
                 layout = infos[i].get("training_layout")
                 if layout is not None:
                     self._layout_episodes[str(layout)] += 1
+                if "episode_official_return" in infos[i]:
+                    self._completed_official_returns.append(
+                        float(infos[i]["episode_official_return"])
+                    )
+                if "episode_shaping_return" in infos[i]:
+                    self._completed_shaping_returns.append(
+                        float(infos[i]["episode_shaping_return"])
+                    )
         return obs, rewards, dones, infos
 
     def get_episode_rewards(self):
@@ -180,11 +276,20 @@ class RecordingVecMonitor(VecMonitor):
             for layout, count in sorted(self._layout_episodes.items())
         }
 
+    def get_reward_component_returns(self):
+        """返回已经结束回合的官方与塑形回报，供 checkpoint 记录。"""
+        return {
+            "official": self._completed_official_returns,
+            "shaping": self._completed_shaping_returns,
+        }
+
 
 def build_env_stack(
     num_vec_envs: int,
     seed: int,
     layouts: tuple[str, ...] = ("uniform",),
+    reward_config: dict | None = None,
+    gamma: float = 0.99,
 ):
     """构造到 FlattenCoverageVecEnv 为止的训练栈（不含 VecMonitor/VecNormalize）。"""
     suite = load_suite(_PUBLIC_SUITE)
@@ -196,6 +301,15 @@ def build_env_stack(
         seed_start=seed,
         seed_stride=num_vec_envs,
     )
+    reward_config = reward_config or {"kind": "official"}
+    if reward_config["kind"] == "official_plus_potential":
+        env = PotentialRewardWrapper(
+            env,
+            alpha=float(reward_config["potential_alpha"]),
+            gamma=float(gamma),
+        )
+    elif reward_config["kind"] != "official":
+        raise ValueError(f"不支持的训练奖励类型: {reward_config['kind']}")
     env = AliveAgentsBridge(env)
     env = ss.pettingzoo_env_to_vec_env_v1(env)
     env = ss.concat_vec_envs_v1(env, num_vec_envs=num_vec_envs, num_cpus=0, base_class="stable_baselines3")
@@ -408,12 +522,21 @@ class TrainingCheckpointRecorder:
         )
 
         rewards = self._monitor().get_episode_rewards()
+        components = self._monitor().get_reward_component_returns()
         validation = evaluate_model_selection(self._model, self._norm_env, self._strategy)
         row = {
             "label": label,
             "total_steps": int(self._model.num_timesteps),
             "mean_episode_reward_last100": (
                 float(np.mean(rewards[-100:])) if rewards else None
+            ),
+            "mean_official_return_last100": (
+                float(np.mean(components["official"][-100:]))
+                if components["official"] else None
+            ),
+            "mean_shaping_return_last100": (
+                float(np.mean(components["shaping"][-100:]))
+                if components["shaping"] else None
             ),
             "layout_episode_counts": self._monitor().get_layout_episode_counts(),
             "model_selection": validation,
@@ -437,9 +560,6 @@ def train(args):
         for layout, weight in experiment["layout_weights"].items()
         if float(weight) > 0.0
     )
-    if experiment["reward"]["kind"] != "official":
-        raise ValueError("当前训练代码只实现 T000/T001 的官方奖励，尚未启用奖励塑形")
-
     total_steps = int(
         args.total_steps
         if args.total_steps is not None
@@ -457,7 +577,13 @@ def train(args):
         raise FileExistsError(f"训练输出目录必须不存在或为空: {out_dir}")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    flat_env = build_env_stack(args.num_vec_envs, args.env_seed_start, layouts)
+    flat_env = build_env_stack(
+        args.num_vec_envs,
+        args.env_seed_start,
+        layouts,
+        reward_config=experiment["reward"],
+        gamma=float(common["ppo"]["gamma"]),
+    )
     monitor = RecordingVecMonitor(flat_env)
     env = VecNormalize(monitor, norm_obs=True, norm_reward=False, clip_obs=10.0)
     model = PPO(
@@ -493,6 +619,7 @@ def train(args):
         "model_seed": args.seed,
         "environment_seed_start": args.env_seed_start,
         "layouts": list(layouts),
+        "reward": experiment["reward"],
         "requested_total_steps": total_steps,
         "actual_total_steps": model.num_timesteps,
         "checkpoint_interval": checkpoint_interval,
@@ -564,7 +691,7 @@ def check_export(args):
 
 def main():
     parser = argparse.ArgumentParser(description="P007 可复现 PPO 训练与 checkpoint 评测")
-    parser.add_argument("--experiment", choices=("T000", "T001"), default="T000")
+    parser.add_argument("--experiment", choices=("T000", "T001", "T002"), default="T000")
     parser.add_argument("--total-steps", type=int, default=None)
     parser.add_argument("--checkpoint-interval", type=int, default=None)
     parser.add_argument("--num-vec-envs", type=int, default=4)
