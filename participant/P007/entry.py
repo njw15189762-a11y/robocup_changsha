@@ -13,6 +13,7 @@ class DeterministicAssignmentPolicy:
     _EPS = 1e-6
     _MEMORY_STEPS = 4
     _VISIBLE_LEAD_SECONDS = 0.5
+    _VISIBLE_LATERAL_GAIN = 0.0
     _TRACKING_DAMPING = 1.2
     _VISIBLE_APPROACH_DAMPING = 0.0
     _DAMPING_DISTANCE = 0.18
@@ -257,6 +258,26 @@ class DeterministicAssignmentPolicy:
                 damping = self._VISIBLE_APPROACH_DAMPING
             # 两个动作分量分别饱和，允许对角方向同时使用两个轴的最大驱动力。
             drive = np.clip(5.0 * target_rel, -1.0, 1.0) - damping * velocity
+            if (
+                tracking_mode == self._MODE_VISIBLE_TRACK
+                and self._VISIBLE_LATERAL_GAIN > 0.0
+                and self._assigned_target is not None
+            ):
+                # 仅抵消相对目标方向的侧滑，不改变径向追近驱动力。
+                current_rel = np.asarray(
+                    observation["targets"][self._assigned_target, :2],
+                    dtype=np.float64,
+                )
+                current_distance = float(np.linalg.norm(current_rel))
+                if current_distance > self._EPS:
+                    unit = current_rel / current_distance
+                    relative_velocity = velocity - self._target_velocities[
+                        self._assigned_target
+                    ]
+                    lateral_velocity = relative_velocity - np.dot(
+                        relative_velocity, unit
+                    ) * unit
+                    drive -= self._VISIBLE_LATERAL_GAIN * lateral_velocity
 
         drive += 0.9 * self._avoidance(observation)
         return np.clip(drive, -1.0, 1.0).astype(np.float32)
