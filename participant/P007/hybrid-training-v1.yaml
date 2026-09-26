@@ -1,0 +1,25 @@
+strategy_version: P007-hybrid-training/1.0
+
+experiment:
+  id: H001
+  description: 只在严格无目标搜索状态执行并训练连续残差动作
+  residual_scale: 0.35
+  discovery_bonus: 1.0
+  layouts: [uniform, crossing]
+
+training:
+  total_timesteps: 49152
+  num_vec_envs: 4
+  model_seed: 7101
+  environment_seed_start: 51001
+  n_steps: 512
+  batch_size: 256
+  learning_rate: 0.0003
+  gamma: 0.99
+  gae_lambda: 0.95
+  net_arch: [32, 32]
+
+model_selection:
+  uniform_seeds: [41001, 41020]
+  crossing_seeds: [42001, 42020]
+
