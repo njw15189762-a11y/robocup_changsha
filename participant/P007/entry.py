@@ -13,6 +13,9 @@ class DeterministicAssignmentPolicy:
     _EPS = 1e-6
     _MEMORY_STEPS = 4
     _VISIBLE_LEAD_SECONDS = 0.5
+    _TRACKING_DAMPING = 1.2
+    _VISIBLE_APPROACH_DAMPING = 0.0
+    _DAMPING_DISTANCE = 0.18
     _MODE_VISIBLE_TRACK = "visible_track"
     _MODE_MEMORY_TRACK = "memory_track"
     _MODE_RULE_SEARCH = "visible_but_unassigned_rule_search"
@@ -24,6 +27,7 @@ class DeterministicAssignmentPolicy:
         self._num_targets = 1
         self._dt = 0.1
         self._target_max_speed = 0.2
+        self._target_radius = 0.15
         self._target_bound = 0.85
         self._last_target_positions = np.empty((0, 2), dtype=np.float64)
         self._target_velocities = np.empty((0, 2), dtype=np.float64)
@@ -37,6 +41,7 @@ class DeterministicAssignmentPolicy:
         self._num_targets = int(context.num_targets)
         self._dt = float(context.task.dt)
         self._target_max_speed = float(context.task.target_max_speed)
+        self._target_radius = float(context.task.target_radius)
         self._target_bound = float(context.task.map_half_extent - context.task.target_radius)
         self._last_target_positions = np.full((self._num_targets, 2), np.nan, dtype=np.float64)
         self._target_velocities = np.zeros((self._num_targets, 2), dtype=np.float64)
@@ -229,7 +234,12 @@ class DeterministicAssignmentPolicy:
                 if np.any(residual):
                     drive += 0.35 * residual
         else:
-            damping = 1.2 if distance < 0.18 else 0.0
+            damping = self._TRACKING_DAMPING if distance < self._DAMPING_DISTANCE else 0.0
+            if (
+                tracking_mode == self._MODE_VISIBLE_TRACK
+                and self._target_radius <= distance < self._DAMPING_DISTANCE
+            ):
+                damping = self._VISIBLE_APPROACH_DAMPING
             # 两个动作分量分别饱和，允许对角方向同时使用两个轴的最大驱动力。
             drive = np.clip(5.0 * target_rel, -1.0, 1.0) - damping * velocity
 
