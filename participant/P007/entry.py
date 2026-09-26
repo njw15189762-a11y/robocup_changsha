@@ -16,6 +16,7 @@ class DeterministicAssignmentPolicy:
     _TRACKING_DAMPING = 1.2
     _VISIBLE_APPROACH_DAMPING = 0.0
     _DAMPING_DISTANCE = 0.18
+    _VISIBLE_DAMPING_DISTANCE_SOURCE = "predicted"
     _MODE_VISIBLE_TRACK = "visible_track"
     _MODE_MEMORY_TRACK = "memory_track"
     _MODE_RULE_SEARCH = "visible_but_unassigned_rule_search"
@@ -234,10 +235,24 @@ class DeterministicAssignmentPolicy:
                 if np.any(residual):
                     drive += 0.35 * residual
         else:
-            damping = self._TRACKING_DAMPING if distance < self._DAMPING_DISTANCE else 0.0
+            damping_distance = distance
             if (
                 tracking_mode == self._MODE_VISIBLE_TRACK
-                and self._target_radius <= distance < self._DAMPING_DISTANCE
+                and self._VISIBLE_DAMPING_DISTANCE_SOURCE == "observed"
+                and self._assigned_target is not None
+            ):
+                # 提前量只影响追逐方向；用当前可见距离判断是否需要制动。
+                damping_distance = float(
+                    np.linalg.norm(observation["targets"][self._assigned_target, :2])
+                )
+            damping = (
+                self._TRACKING_DAMPING
+                if damping_distance < self._DAMPING_DISTANCE
+                else 0.0
+            )
+            if (
+                tracking_mode == self._MODE_VISIBLE_TRACK
+                and self._target_radius <= damping_distance < self._DAMPING_DISTANCE
             ):
                 damping = self._VISIBLE_APPROACH_DAMPING
             # 两个动作分量分别饱和，允许对角方向同时使用两个轴的最大驱动力。

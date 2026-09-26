@@ -361,19 +361,32 @@ def main() -> None:
         default=None,
         help="可选覆盖覆盖线外的可见追踪阻尼，供 H004 配对诊断",
     )
+    parser.add_argument(
+        "--visible-damping-distance-source",
+        choices=("predicted", "observed"),
+        default=None,
+        help="可选覆盖可见追踪制动判断所用距离，供 H005 配对诊断",
+    )
+    parser.add_argument("--rule-only", action="store_true")
     args = parser.parse_args()
     if args.visible_approach_damping is not None:
         DeterministicAssignmentPolicy._VISIBLE_APPROACH_DAMPING = float(
             args.visible_approach_damping
         )
+    if args.visible_damping_distance_source is not None:
+        DeterministicAssignmentPolicy._VISIBLE_DAMPING_DISTANCE_SOURCE = (
+            args.visible_damping_distance_source
+        )
     config = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
 
     experiments = []
-    settings = [("rule", 0.0)] + [
-        (controller, scale)
-        for controller in CONTROLLERS[1:]
-        for scale in SCALES
-    ]
+    settings = [("rule", 0.0)]
+    if not args.rule_only:
+        settings += [
+            (controller, scale)
+            for controller in CONTROLLERS[1:]
+            for scale in SCALES
+        ]
     for controller, scale in settings:
         groups = {}
         for layout in ("uniform", "crossing"):
@@ -413,6 +426,7 @@ def main() -> None:
                 "experiment": "H003-oracle",
                 "scope": args.scope,
                 "visible_approach_damping": args.visible_approach_damping,
+                "visible_damping_distance_source": args.visible_damping_distance_source,
                 "results": experiments,
             },
             indent=2,

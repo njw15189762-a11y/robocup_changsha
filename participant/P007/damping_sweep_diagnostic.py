@@ -24,7 +24,7 @@ SUITE_PATH = Path(__file__).resolve().parent / "dev/dev-suite-v1.yaml"
 DAMPING_VALUES = (1.2, 0.6, 0.0)
 
 
-def run_case(case, damping: float) -> dict:
+def run_case(case, damping: float, source: str = "predicted") -> dict:
     """运行单个开发集场景并保留逐目标最近距离。"""
     env = make_training_env(case.task_config)
     observations, _ = env.reset(seed=case.scenario_seed)
@@ -32,6 +32,7 @@ def run_case(case, damping: float) -> dict:
     for agent_index, agent_id in enumerate(env.agents):
         policy = DeterministicAssignmentPolicy()
         policy._VISIBLE_APPROACH_DAMPING = float(damping)
+        policy._VISIBLE_DAMPING_DISTANCE_SOURCE = source
         policy.reset(
             EpisodeContext(
                 agent_index=agent_index,
@@ -105,34 +106,39 @@ def summarize(rows: list[dict]) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="P007 H004 末段阻尼扫描")
+    parser = argparse.ArgumentParser(description="P007 H004/H005 末段阻尼扫描")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--suite", type=Path, default=SUITE_PATH)
+    parser.add_argument(
+        "--source", choices=("predicted", "observed"), default="predicted"
+    )
+    parser.add_argument("--damping", nargs="+", type=float, default=DAMPING_VALUES)
     args = parser.parse_args()
-    suite = load_suite(SUITE_PATH)
+    suite = load_suite(args.suite)
 
     results = []
-    for damping in DAMPING_VALUES:
+    for damping in args.damping:
         groups = {}
         for group in suite.groups:
-            rows = [run_case(case, damping) for case in group.cases]
+            rows = [run_case(case, damping, args.source) for case in group.cases]
             groups[group.group_id] = summarize(rows)
         score = 500.0 * sum(group["mean_j"] for group in groups.values())
         result = {
             "visible_approach_damping": damping,
+            "distance_source": args.source,
             "performance_score": score,
             "groups": groups,
         }
         results.append(result)
         print(
-            f"damping={damping:.1f} score={score:.4f} "
-            f"basic={groups['basic']['mean_j']:.6f} "
-            f"cooperation={groups['cooperation']['mean_j']:.6f} "
-            f"zeros={groups['basic']['zero_coverage_episodes'] + groups['cooperation']['zero_coverage_episodes']}"
+            f"source={args.source} damping={damping:.1f} score={score:.4f} "
+            f"groups={[(key, round(group['mean_j'], 6)) for key, group in groups.items()]} "
+            f"zeros={sum(group['zero_coverage_episodes'] for group in groups.values())}"
         )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
-        json.dumps({"experiment": "H004-damping-sweep", "results": results}, indent=2),
+        json.dumps({"experiment": "H004-H005-damping-sweep", "results": results}, indent=2),
         encoding="utf-8",
     )
     print(f"详细结果：{args.output}")
