@@ -33,6 +33,7 @@ import numpy as np
 import supersuit as ss
 import yaml
 from pettingzoo.utils.wrappers import BaseParallelWrapper
+from scipy.optimize import linear_sum_assignment
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import VecEnvWrapper, VecMonitor, VecNormalize
 
@@ -128,6 +129,7 @@ class PotentialRewardWrapper(BaseParallelWrapper):
         *,
         alpha: float,
         gamma: float,
+        potential_kind: str = "independent_nearest",
         total_world_steps: int | None = None,
         decay_start_fraction: float | None = None,
         decay_end_fraction: float | None = None,
@@ -137,6 +139,9 @@ class PotentialRewardWrapper(BaseParallelWrapper):
             raise ValueError("势函数奖励系数 alpha 必须为正数")
         self._alpha = float(alpha)
         self._gamma = float(gamma)
+        if potential_kind not in ("independent_nearest", "assignment"):
+            raise ValueError(f"不支持的势函数类型: {potential_kind}")
+        self._potential_kind = potential_kind
         self._total_world_steps = total_world_steps
         self._decay_start_fraction = decay_start_fraction
         self._decay_end_fraction = decay_end_fraction
@@ -190,9 +195,17 @@ class PotentialRewardWrapper(BaseParallelWrapper):
         distances = np.linalg.norm(
             robot_positions[:, None, :] - target_positions[None, :, :], axis=2
         )
-        nearest = np.min(distances, axis=0)
         sense_radius = float(self.env.config.public.sense_radius)
-        closeness = 1.0 - np.clip(nearest / sense_radius, 0.0, 1.0)
+        clipped_cost = np.clip(distances / sense_radius, 0.0, 1.0)
+        if self._potential_kind == "independent_nearest":
+            closeness = 1.0 - np.min(clipped_cost, axis=0)
+        else:
+            # 一台机器人至多匹配一个目标；未匹配目标的接近度保持为零。
+            robot_indices, target_indices = linear_sum_assignment(clipped_cost)
+            closeness = np.zeros(len(target_positions), dtype=np.float64)
+            closeness[target_indices] = 1.0 - clipped_cost[
+                robot_indices, target_indices
+            ]
         return float(np.mean(closeness))
 
     def reset(self, seed=None, options=None):
@@ -356,6 +369,9 @@ def build_env_stack(
             env,
             alpha=float(reward_config["potential_alpha"]),
             gamma=float(gamma),
+            potential_kind=str(
+                reward_config.get("potential_kind", "independent_nearest")
+            ),
         )
     elif reward_config["kind"] == "official_plus_potential_schedule":
         if total_model_steps is None:
@@ -369,6 +385,9 @@ def build_env_stack(
             env,
             alpha=float(reward_config["initial_alpha"]),
             gamma=float(gamma),
+            potential_kind=str(
+                reward_config.get("potential_kind", "independent_nearest")
+            ),
             total_world_steps=total_model_steps // transitions_per_world_step,
             decay_start_fraction=float(reward_config["decay_start_fraction"]),
             decay_end_fraction=float(reward_config["decay_end_fraction"]),
@@ -768,7 +787,9 @@ def check_export(args):
 def main():
     parser = argparse.ArgumentParser(description="P007 可复现 PPO 训练与 checkpoint 评测")
     parser.add_argument(
-        "--experiment", choices=("T000", "T001", "T002", "T003"), default="T000"
+        "--experiment",
+        choices=("T000", "T001", "T002", "T003", "T004"),
+        default="T000",
     )
     parser.add_argument("--total-steps", type=int, default=None)
     parser.add_argument("--checkpoint-interval", type=int, default=None)
