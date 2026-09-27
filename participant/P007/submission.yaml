@@ -5,9 +5,9 @@ task_version: "coverage-task/1.0"
 entrypoint: "entry:build_policy"
 artifact_dir: "artifacts"
 checkpoint_manifest:
-  - path: "artifacts/policy.npz"
-    sha256: "aedfa4443847600df2fd5e59e0942bff0077849f6d27ea163baf8b4b18d5c728"
-    size_bytes: 92186
+  - path: "artifacts/rule-params.json"
+    sha256: "2240df48df237039bcf175233a045422717da51efcc156b94d593e464f282e84"
+    size_bytes: 33
 inference_lock: "requirements-infer.lock"
 method_type: "rule"
 train_command: null

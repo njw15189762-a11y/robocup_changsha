@@ -1,0 +1,2 @@
+# 规则参数的字节内容必须在 Windows 与 Linux 检出时保持相同哈希。
+artifacts/rule-params.json text eol=lf

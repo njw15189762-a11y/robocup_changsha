@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import math
 
 import numpy as np
@@ -24,7 +25,8 @@ class DeterministicAssignmentPolicy:
     _MODE_RULE_SEARCH = "visible_but_unassigned_rule_search"
     _MODE_LEARNED_SEARCH = "strict_learned_search"
 
-    def __init__(self) -> None:
+    def __init__(self, visible_track_gain: float = 12.0) -> None:
+        self._VISIBLE_TRACK_GAIN = float(visible_track_gain)
         self._agent_index = 0
         self._num_agents = 1
         self._num_targets = 1
@@ -292,5 +294,10 @@ class DeterministicAssignmentPolicy:
 
 
 def build_policy(context):
-    del context
-    return DeterministicAssignmentPolicy()
+    # 仅从提交快照中读取固定规则参数，不在评测期间学习或修改参数。
+    with (context.artifact_dir / "rule-params.json").open(encoding="utf-8") as file:
+        params = json.load(file)
+    gain = params["visible_track_gain"]
+    if type(gain) not in (int, float) or not math.isfinite(gain) or gain <= 0:
+        raise ValueError("可见目标追踪增益必须是有限正数")
+    return DeterministicAssignmentPolicy(visible_track_gain=gain)
