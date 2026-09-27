@@ -1,0 +1,27 @@
+strategy_version: P007-hybrid-training/1.2
+
+experiment:
+  id: H007-P
+  description: 可见追踪残差加规则分配目标的连续接近奖励
+  residual_scale: 0.0
+  discovery_bonus: 0.0
+  discovery_schedule: constant
+  tracking_residual_scale: 0.5
+  tracking_progress_alpha: 0.5
+  layouts: [uniform, crossing]
+
+training:
+  total_timesteps: 49152
+  num_vec_envs: 4
+  model_seed: 7101
+  environment_seed_start: 51001
+  n_steps: 512
+  batch_size: 256
+  learning_rate: 0.0003
+  gamma: 0.99
+  gae_lambda: 0.95
+  net_arch: [32, 32]
+
+model_selection:
+  uniform_seeds: [41001, 41020]
+  crossing_seeds: [42001, 42020]

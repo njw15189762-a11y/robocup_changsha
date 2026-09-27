@@ -61,7 +61,7 @@ def public_params(config) -> PublicTaskParams:
 
 
 class HybridSearchWrapper(BaseParallelWrapper):
-    """执行规则动作，仅在严格搜索状态叠加 PPO 残差并奖励首次发现。"""
+    """执行规则动作，并按配置在搜索或可见追踪状态叠加 PPO 残差。"""
 
     _MASK_KEY = "search_mask"
 
@@ -72,10 +72,26 @@ class HybridSearchWrapper(BaseParallelWrapper):
         residual_scale: float,
         discovery_bonus: float,
         discovery_schedule: str = "constant",
+        tracking_residual_scale: float = 0.0,
+        tracking_progress_alpha: float = 0.0,
+        tracking_residual_gate: str = "all_visible",
+        tracking_residual_penalty: float = 0.0,
     ):
         super().__init__(env)
         self._residual_scale = float(residual_scale)
         self._discovery_bonus = float(discovery_bonus)
+        self._tracking_residual_scale = float(tracking_residual_scale)
+        self._tracking_progress_alpha = float(tracking_progress_alpha)
+        self._tracking_residual_penalty = float(tracking_residual_penalty)
+        if tracking_residual_gate not in {"all_visible", "outside_coverage"}:
+            raise ValueError(f"未知可见追踪残差门: {tracking_residual_gate}")
+        self._tracking_residual_gate = tracking_residual_gate
+        if (
+            self._tracking_residual_scale < 0
+            or self._tracking_progress_alpha < 0
+            or self._tracking_residual_penalty < 0
+        ):
+            raise ValueError("追踪残差尺度、连续奖励与动作惩罚系数不得为负")
         if discovery_schedule not in {"constant", "remaining_linear"}:
             raise ValueError(f"未知首次发现奖励日程: {discovery_schedule}")
         self._discovery_schedule = discovery_schedule
@@ -83,9 +99,12 @@ class HybridSearchWrapper(BaseParallelWrapper):
         self._observations: dict = {}
         self._rule_actions: dict[str, np.ndarray] = {}
         self._search_masks: dict[str, bool] = {}
+        self._visible_tracking_targets: dict[str, tuple[int, float]] = {}
         self._ever_seen_targets: set[int] = set()
         self._official_return = 0.0
         self._discovery_return = 0.0
+        self._progress_return = 0.0
+        self._penalty_return = 0.0
         self._search_steps = 0
         self._team_steps = 0
 
@@ -118,14 +137,30 @@ class HybridSearchWrapper(BaseParallelWrapper):
         self._observations = observations
         self._rule_actions = {}
         self._search_masks = {}
+        self._visible_tracking_targets = {}
         augmented = {}
         for agent_id, observation in observations.items():
             policy = self._policies[agent_id]
             self._rule_actions[agent_id] = policy.act(observation)
-            search = policy._last_control_mode == policy._MODE_LEARNED_SEARCH
-            self._search_masks[agent_id] = search
+            search = (
+                policy._last_control_mode == policy._MODE_LEARNED_SEARCH
+                and self._residual_scale > 0.0
+            )
+            visible_tracking = (
+                policy._last_control_mode == policy._MODE_VISIBLE_TRACK
+                and policy._assigned_target is not None
+            )
+            if visible_tracking:
+                target = int(policy._assigned_target)
+                distance = float(np.linalg.norm(observation["targets"][target, :2]))
+                self._visible_tracking_targets[agent_id] = (target, distance)
+            tracking_allowed = visible_tracking and self._tracking_residual_scale > 0.0
+            if tracking_allowed and self._tracking_residual_gate == "outside_coverage":
+                tracking_allowed = distance > float(self.env.config.public.target_radius)
+            active = search or tracking_allowed
+            self._search_masks[agent_id] = active
             row = dict(observation)
-            row[self._MASK_KEY] = np.float32(search)
+            row[self._MASK_KEY] = np.float32(active)
             augmented[agent_id] = row
         return augmented
 
@@ -140,6 +175,8 @@ class HybridSearchWrapper(BaseParallelWrapper):
         }
         self._official_return = 0.0
         self._discovery_return = 0.0
+        self._progress_return = 0.0
+        self._penalty_return = 0.0
         self._search_steps = 0
         self._team_steps = 0
         return self._prepare(observations), infos
@@ -177,13 +214,33 @@ class HybridSearchWrapper(BaseParallelWrapper):
     def step(self, actions):
         applied_actions = {}
         previous_masks = dict(self._search_masks)
+        previous_targets = dict(self._visible_tracking_targets)
+        action_penalties = {agent_id: 0.0 for agent_id in self.env.agents}
         for agent_id in self.env.agents:
-            if previous_masks[agent_id]:
+            if previous_masks[agent_id] and agent_id in previous_targets:
+                applied_actions[agent_id] = np.clip(
+                    self._rule_actions[agent_id]
+                    + self._tracking_residual_scale
+                    * np.asarray(actions[agent_id], dtype=np.float64),
+                    -1.0,
+                    1.0,
+                ).astype(np.float32)
+                delta = (
+                    np.asarray(applied_actions[agent_id], dtype=np.float64)
+                    - np.asarray(self._rule_actions[agent_id], dtype=np.float64)
+                )
+                # 惩罚实际执行的偏离量，不惩罚被动作裁剪抵消的网络输出。
+                action_penalties[agent_id] = self._tracking_residual_penalty * float(
+                    np.dot(delta, delta)
+                )
+                self._search_steps += 1
+            elif previous_masks[agent_id]:
                 applied_actions[agent_id] = self._search_action(agent_id, actions[agent_id])
                 self._search_steps += 1
             else:
                 applied_actions[agent_id] = self._rule_actions[agent_id]
         self._team_steps += 1
+        self._penalty_return += sum(action_penalties.values())
 
         observations, rewards, terminations, truncations, infos = self.env.step(
             applied_actions
@@ -215,8 +272,32 @@ class HybridSearchWrapper(BaseParallelWrapper):
                 self._discovery_return += weighted_bonus / self.env.config.num_targets
         self._ever_seen_targets.update(newly_seen)
 
+        progress_bonuses = {agent_id: 0.0 for agent_id in rewards}
+        if self._tracking_progress_alpha > 0.0:
+            radius = float(self.env.config.public.target_radius)
+            for agent_id, (target, before_distance) in previous_targets.items():
+                observation = observations.get(agent_id)
+                if (
+                    not previous_masks.get(agent_id, False)
+                    or observation is None
+                    or not bool(observation["target_visible"][target])
+                ):
+                    continue
+                after_distance = float(np.linalg.norm(observation["targets"][target, :2]))
+                # 覆盖半径内不再奖励更深的靠近；退离覆盖圈则仍给负进度。
+                progress = (
+                    max(before_distance, radius) - max(after_distance, radius)
+                ) / radius
+                progress_bonuses[agent_id] = self._tracking_progress_alpha * float(
+                    np.clip(progress, -0.75, 0.75)
+                )
+            self._progress_return += sum(progress_bonuses.values())
+
         shaped_rewards = {
-            agent_id: float(reward + bonuses[agent_id])
+            agent_id: float(
+                reward + bonuses[agent_id] + progress_bonuses[agent_id]
+                - action_penalties[agent_id]
+            )
             for agent_id, reward in rewards.items()
         }
         episode_done = bool(rewards) and all(
@@ -228,13 +309,18 @@ class HybridSearchWrapper(BaseParallelWrapper):
             info["hybrid_metrics"] = info.get("metrics")
             info["search_mask"] = float(previous_masks.get(agent_id, False))
             info["discovery_bonus"] = float(bonuses.get(agent_id, 0.0))
+            info["tracking_progress_bonus"] = float(progress_bonuses.get(agent_id, 0.0))
+            info["tracking_action_penalty"] = float(action_penalties.get(agent_id, 0.0))
             if episode_done:
                 info["episode_official_return"] = float(self._official_return)
                 info["episode_discovery_return"] = float(self._discovery_return)
+                info["episode_tracking_progress_return"] = float(self._progress_return)
+                info["episode_tracking_action_penalty"] = float(self._penalty_return)
                 info["episode_search_fraction"] = float(
                     self._search_steps
                     / max(1, self._team_steps * self.env.config.num_agents)
                 )
+                info["episode_control_fraction"] = info["episode_search_fraction"]
         return (
             self._prepare(observations),
             shaped_rewards,
@@ -245,7 +331,7 @@ class HybridSearchWrapper(BaseParallelWrapper):
 
 
 class HybridFlattenVecEnv(VecEnvWrapper):
-    """压平合法104维观测，并把搜索门作为第105维训练特征。"""
+    """压平合法104维观测，并把残差控制门作为第105维训练特征。"""
 
     def __init__(self, venv):
         super().__init__(venv)
@@ -291,7 +377,7 @@ class HybridFlattenVecEnv(VecEnvWrapper):
 
 
 class SearchMaskVecNormalize(VecNormalize):
-    """标准化104维环境特征，但保持末位搜索门严格为0或1。"""
+    """标准化104维环境特征，但保持末位残差控制门严格为0或1。"""
 
     def normalize_obs(self, obs):
         normalized = super().normalize_obs(obs)
@@ -301,7 +387,7 @@ class SearchMaskVecNormalize(VecNormalize):
 
 
 class MaskedPPO(PPO):
-    """价值函数使用全部样本，策略与熵损失只使用搜索门为1的样本。"""
+    """价值函数使用全部样本，策略与熵损失只使用残差实际生效的样本。"""
 
     def train(self) -> None:
         self.policy.set_training_mode(True)
@@ -389,6 +475,7 @@ class MaskedPPO(PPO):
         self.logger.record("train/approx_kl", np.mean(approx_kl_divs))
         self.logger.record("train/clip_fraction", np.mean(clip_fractions))
         self.logger.record("train/search_sample_fraction", np.mean(mask_fractions))
+        self.logger.record("train/active_sample_fraction", np.mean(mask_fractions))
         self.logger.record("train/loss", float(last_loss.item()))
         self.logger.record("train/explained_variance", explained_var)
         if hasattr(self.policy, "log_std"):
@@ -405,9 +492,14 @@ def build_stack(
     residual_scale: float,
     discovery_bonus: float,
     discovery_schedule: str = "constant",
+    tracking_residual_scale: float = 0.0,
+    tracking_progress_alpha: float = 0.0,
+    tracking_residual_gate: str = "all_visible",
+    tracking_residual_penalty: float = 0.0,
+    task_config=None,
 ):
     suite = load_suite(PUBLIC_SUITE)
-    env = make_training_env(suite.groups[0].cases[0].task_config)
+    env = make_training_env(task_config or suite.groups[0].cases[0].task_config)
     env = ScenarioScheduleWrapper(
         env,
         layouts=layouts,
@@ -419,6 +511,10 @@ def build_stack(
         residual_scale=residual_scale,
         discovery_bonus=discovery_bonus,
         discovery_schedule=discovery_schedule,
+        tracking_residual_scale=tracking_residual_scale,
+        tracking_progress_alpha=tracking_progress_alpha,
+        tracking_residual_gate=tracking_residual_gate,
+        tracking_residual_penalty=tracking_residual_penalty,
     )
     env = AliveAgentsBridge(env)
     env = ss.pettingzoo_env_to_vec_env_v1(env)
@@ -446,6 +542,18 @@ def evaluate_model(model: MaskedPPO, norm_env: SearchMaskVecNormalize, config: d
     discovery_schedule = str(
         config["experiment"].get("discovery_schedule", "constant")
     )
+    tracking_residual_scale = float(
+        config["experiment"].get("tracking_residual_scale", 0.0)
+    )
+    tracking_progress_alpha = float(
+        config["experiment"].get("tracking_progress_alpha", 0.0)
+    )
+    tracking_residual_gate = str(
+        config["experiment"].get("tracking_residual_gate", "all_visible")
+    )
+    tracking_residual_penalty = float(
+        config["experiment"].get("tracking_residual_penalty", 0.0)
+    )
     for layout in ("uniform", "crossing"):
         start, end = config["model_selection"][f"{layout}_seeds"]
         rows = []
@@ -457,6 +565,10 @@ def evaluate_model(model: MaskedPPO, norm_env: SearchMaskVecNormalize, config: d
                 residual_scale=residual_scale,
                 discovery_bonus=discovery_bonus,
                 discovery_schedule=discovery_schedule,
+                tracking_residual_scale=tracking_residual_scale,
+                tracking_progress_alpha=tracking_progress_alpha,
+                tracking_residual_gate=tracking_residual_gate,
+                tracking_residual_penalty=tracking_residual_penalty,
             )
             raw = env.reset()
             step_j, step_coverage, step_collision = [], [], []
@@ -499,10 +611,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="P007 混合搜索训练")
     parser.add_argument("--config", type=Path, default=CONFIG_PATH)
     parser.add_argument("--total-steps", type=int, default=None)
+    parser.add_argument("--model-seed", type=int, default=None)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     config = yaml.safe_load(args.config.read_text(encoding="utf-8"))
     training = config["training"]
+    if args.model_seed is not None:
+        training["model_seed"] = args.model_seed
     total_steps = int(args.total_steps or training["total_timesteps"])
     if args.out.exists() and any(args.out.iterdir()):
         raise FileExistsError(f"输出目录必须为空或不存在: {args.out}")
@@ -516,6 +631,18 @@ def main() -> None:
         discovery_bonus=float(config["experiment"]["discovery_bonus"]),
         discovery_schedule=str(
             config["experiment"].get("discovery_schedule", "constant")
+        ),
+        tracking_residual_scale=float(
+            config["experiment"].get("tracking_residual_scale", 0.0)
+        ),
+        tracking_progress_alpha=float(
+            config["experiment"].get("tracking_progress_alpha", 0.0)
+        ),
+        tracking_residual_gate=str(
+            config["experiment"].get("tracking_residual_gate", "all_visible")
+        ),
+        tracking_residual_penalty=float(
+            config["experiment"].get("tracking_residual_penalty", 0.0)
         ),
     )
     monitor = VecMonitor(flat_env)
@@ -553,6 +680,7 @@ def main() -> None:
     )
     summary = {
         "experiment": config["experiment"],
+        "model_seed": int(training["model_seed"]),
         "total_steps": int(model.num_timesteps),
         "wall_seconds": round(elapsed, 1),
         "model_selection": evaluation,
