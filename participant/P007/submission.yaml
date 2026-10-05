@@ -14,4 +14,4 @@ train_command: null
 training_config_paths: []
 report_path: "REPORT.md"
 metadata:
-  description: "确定性规则策略：局部竞价分配、目标历史与速度预测、分散搜索及队友避碰"
+  description: "确定性规则策略：局部覆盖价值分配、目标历史追踪、分散搜索及队友避碰"

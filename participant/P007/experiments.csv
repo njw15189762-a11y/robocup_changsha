@@ -35,3 +35,6 @@ H017-F,2026-09-27,timed_visible_gain,visible gain 12 steps 0-6 then 5 steps 7-9 
 H018-D,2026-09-27,lateral_compensation,add visible lateral relative velocity gain 0.5 on dev40,170.000000,,,,,no_gain,outputs/P007/h018-dev.json
 H018-S,2026-09-27,lateral_compensation,add visible lateral relative velocity gain 0.5 on selection40,171.500000,,,,,no_gain,outputs/P007/h018-selection.json
 H018-F,2026-09-27,lateral_compensation,add visible lateral relative velocity gain 0.5 on fresh120,169.888889,,,,,rejected,outputs/P007/h018-fresh.json
+H031-FINAL,2026-10-05,h031_local_coverage_assignment,H016 paired against unchanged H031 across three independent four case batches totaling 12000 episodes,167.975556,,,,,selected_local_paired,git:P007-h031-more-tests:participant/P007/dev/h035-summary.json
+H031-DERIVED,2026-10-05,h031_official_entry_derived_suite,80 fresh scenarios via official evaluate_one local preview,175.750000,,,,,local_preview_derived_suite,git:P007-h031-more-tests:participant/P007/dev/h035-derived-fresh80-preview/result.json
+H031-P007,2026-10-05,h031_selected_entry,official public eight episodes after local P007 integration,225.000000,0.116667,0.333333,0.000000,0.000000,local_preview,participant/P007/dev/h036-final-public8/result.json

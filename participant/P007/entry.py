@@ -300,4 +300,7 @@ def build_policy(context):
     gain = params["visible_track_gain"]
     if type(gain) not in (int, float) or not math.isfinite(gain) or gain <= 0:
         raise ValueError("可见目标追踪增益必须是有限正数")
-    return DeterministicAssignmentPolicy(visible_track_gain=gain)
+    # H031：覆盖价值分配只使用本机对目标和队友的局部观测。
+    from candidate_policy import CoverageAssignmentPolicy
+
+    return CoverageAssignmentPolicy(visible_track_gain=gain)
