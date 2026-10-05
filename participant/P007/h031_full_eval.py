@@ -28,6 +28,7 @@ def main():
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError(args.output)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
 
     suite = load_suite(ROOT / "configs/public-suite-v1.yaml")
     cases = [case for group in suite.groups for case in group.cases]
