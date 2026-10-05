@@ -15,15 +15,11 @@ class DeterministicAssignmentPolicy:
     _MEMORY_STEPS = 4
     _VISIBLE_LEAD_SECONDS = 0.5
     _VISIBLE_TRACK_GAIN = 12.0
-    _VISIBLE_LATERAL_GAIN = 0.0
     _TRACKING_DAMPING = 1.2
     _VISIBLE_APPROACH_DAMPING = 0.0
     _DAMPING_DISTANCE = 0.18
-    _VISIBLE_DAMPING_DISTANCE_SOURCE = "predicted"
     _MODE_VISIBLE_TRACK = "visible_track"
     _MODE_MEMORY_TRACK = "memory_track"
-    _MODE_RULE_SEARCH = "visible_but_unassigned_rule_search"
-    _MODE_LEARNED_SEARCH = "strict_learned_search"
 
     def __init__(self, visible_track_gain: float = 12.0) -> None:
         self._VISIBLE_TRACK_GAIN = float(visible_track_gain)
@@ -38,7 +34,6 @@ class DeterministicAssignmentPolicy:
         self._target_velocities = np.empty((0, 2), dtype=np.float64)
         self._last_seen_steps = np.empty(0, dtype=np.int64)
         self._assigned_target: int | None = None
-        self._last_control_mode = self._MODE_LEARNED_SEARCH
 
     def reset(self, context) -> None:
         self._agent_index = int(context.agent_index)
@@ -52,7 +47,6 @@ class DeterministicAssignmentPolicy:
         self._target_velocities = np.zeros((self._num_targets, 2), dtype=np.float64)
         self._last_seen_steps = np.full(self._num_targets, -1, dtype=np.int64)
         self._assigned_target = None
-        self._last_control_mode = self._MODE_LEARNED_SEARCH
 
     def _update_target_tracks(self, observation) -> None:
         """更新目标的绝对位置和经过平滑的速度估计。"""
@@ -194,11 +188,6 @@ class DeterministicAssignmentPolicy:
         waypoint = 0.35 * np.array([math.cos(phase), math.sin(phase)], dtype=np.float64)
         return waypoint - self_pos
 
-    def _learned_search_residual(self, observation) -> np.ndarray:
-        """返回学习搜索残差；H000 固定为零，用于验证混合路由不改变基线。"""
-        del observation
-        return np.zeros(2, dtype=np.float64)
-
     def _avoidance(self, observation) -> np.ndarray:
         """对附近的可见队友施加随距离增强的斥力。"""
         repulsion = np.zeros(2, dtype=np.float64)
@@ -218,13 +207,6 @@ class DeterministicAssignmentPolicy:
     def act(self, observation):
         self._update_target_tracks(observation)
         target_rel, tracking_mode = self._select_target(observation)
-        any_target_visible = bool(np.any(observation["target_visible"]))
-        if tracking_mode is not None:
-            self._last_control_mode = tracking_mode
-        elif any_target_visible:
-            self._last_control_mode = self._MODE_RULE_SEARCH
-        else:
-            self._last_control_mode = self._MODE_LEARNED_SEARCH
         desired = self._search_direction(observation) if target_rel is None else target_rel
 
         distance = float(np.linalg.norm(desired))
@@ -233,22 +215,8 @@ class DeterministicAssignmentPolicy:
 
         if target_rel is None:
             drive = min(1.0, 2.5 * distance) * direction - 0.35 * velocity
-            if self._last_control_mode == self._MODE_LEARNED_SEARCH:
-                residual = self._learned_search_residual(observation)
-                # H000 的残差严格为零；后续只替换本函数，不触碰追踪与安全控制。
-                if np.any(residual):
-                    drive += 0.35 * residual
         else:
             damping_distance = distance
-            if (
-                tracking_mode == self._MODE_VISIBLE_TRACK
-                and self._VISIBLE_DAMPING_DISTANCE_SOURCE == "observed"
-                and self._assigned_target is not None
-            ):
-                # 提前量只影响追逐方向；用当前可见距离判断是否需要制动。
-                damping_distance = float(
-                    np.linalg.norm(observation["targets"][self._assigned_target, :2])
-                )
             damping = (
                 self._TRACKING_DAMPING
                 if damping_distance < self._DAMPING_DISTANCE
@@ -265,27 +233,6 @@ class DeterministicAssignmentPolicy:
                 if tracking_mode == self._MODE_VISIBLE_TRACK else 5.0
             )
             drive = np.clip(tracking_gain * target_rel, -1.0, 1.0) - damping * velocity
-            if (
-                tracking_mode == self._MODE_VISIBLE_TRACK
-                and self._VISIBLE_LATERAL_GAIN > 0.0
-                and self._assigned_target is not None
-            ):
-                # 仅抵消相对目标方向的侧滑，不改变径向追近驱动力。
-                current_rel = np.asarray(
-                    observation["targets"][self._assigned_target, :2],
-                    dtype=np.float64,
-                )
-                current_distance = float(np.linalg.norm(current_rel))
-                if current_distance > self._EPS:
-                    unit = current_rel / current_distance
-                    relative_velocity = velocity - self._target_velocities[
-                        self._assigned_target
-                    ]
-                    lateral_velocity = relative_velocity - np.dot(
-                        relative_velocity, unit
-                    ) * unit
-                    drive -= self._VISIBLE_LATERAL_GAIN * lateral_velocity
-
         drive += 0.9 * self._avoidance(observation)
         return np.clip(drive, -1.0, 1.0).astype(np.float32)
 
@@ -300,7 +247,7 @@ def build_policy(context):
     gain = params["visible_track_gain"]
     if type(gain) not in (int, float) or not math.isfinite(gain) or gain <= 0:
         raise ValueError("可见目标追踪增益必须是有限正数")
-    # H031：覆盖价值分配只使用本机对目标和队友的局部观测。
+    # 覆盖价值分配只使用本机对目标和队友的局部观测。
     from candidate_policy import CoverageAssignmentPolicy
 
     return CoverageAssignmentPolicy(visible_track_gain=gain)

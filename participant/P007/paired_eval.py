@@ -1,4 +1,4 @@
-"""H031：按公开套件四个用例分层，在全新种子上成对复核 H016。"""
+"""按公开套件四个用例分层，在独立种子上成对复核最终策略。"""
 
 from __future__ import annotations
 
@@ -36,14 +36,14 @@ def main():
         raise ValueError("预期公开套件包含四个用例")
     rule_final_eval.POLICY_CLASS = CoverageAssignmentPolicy
     start_time = time.monotonic()
-    result = {"experiment": "H031 full fresh paired evaluation",
-              "baseline": "P007 acd0d13 H016",
-              "candidate": "P007-rule-final H031",
+    result = {"experiment": "final coverage assignment paired evaluation",
+              "baseline": "previous rule commit acd0d13",
+              "submission": "P007 final submission",
               "per_case": args.per_case, "starts": args.starts,
               "cases": {}}
 
     for case, start in zip(cases, args.starts):
-        # 只改变场景种子；每个回合的 H016/H031 使用相同环境和公开任务配置。
+        # 只改变场景种子；基线与最终策略使用相同环境和公开任务配置。
         with redirect_stdout(io.StringIO()):
             rows = rule_final_eval.evaluate(case.task_config, start, args.per_case)
         result["cases"][case.case_id] = {
@@ -58,29 +58,29 @@ def main():
     summary = {}
     for case in cases:
         rows = result["cases"][case.case_id]["rows"]
-        h016 = np.array([r["h016"]["j"] for r in rows])
-        h031 = np.array([r["candidate"]["j"] for r in rows])
-        delta = h031 - h016
+        control = np.array([r["control"]["j"] for r in rows])
+        submission = np.array([r["submission"]["j"] for r in rows])
+        delta = submission - control
         case_deltas.append(delta)
         summary[case.case_id] = {
-            "h016_mean_j": float(h016.mean()),
-            "h031_mean_j": float(h031.mean()),
+            "control_mean_j": float(control.mean()),
+            "submission_mean_j": float(submission.mean()),
             "wins": int(np.sum(delta > 1e-9)),
             "losses": int(np.sum(delta < -1e-9)),
             "ties": int(np.sum(np.abs(delta) <= 1e-9)),
-            "h016_target_steps": sum(r["h016"]["target_steps"] for r in rows),
-            "h031_target_steps": sum(r["candidate"]["target_steps"] for r in rows),
-            "h016_collision_steps": sum(r["h016"]["collision_steps"] for r in rows),
-            "h031_collision_steps": sum(r["candidate"]["collision_steps"] for r in rows),
-            "h016_zero_coverage": sum(r["h016"]["target_steps"] == 0 for r in rows),
-            "h031_zero_coverage": sum(r["candidate"]["target_steps"] == 0 for r in rows),
-            "h031_interventions": sum(r["candidate"]["interventions"] for r in rows),
+            "control_target_steps": sum(r["control"]["target_steps"] for r in rows),
+            "submission_target_steps": sum(r["submission"]["target_steps"] for r in rows),
+            "control_collision_steps": sum(r["control"]["collision_steps"] for r in rows),
+            "submission_collision_steps": sum(r["submission"]["collision_steps"] for r in rows),
+            "control_zero_coverage": sum(r["control"]["target_steps"] == 0 for r in rows),
+            "submission_zero_coverage": sum(r["submission"]["target_steps"] == 0 for r in rows),
+            "submission_interventions": sum(r["submission"]["interventions"] for r in rows),
             "changed_episodes": [r["seed"] for r in rows
-                                 if abs(r["candidate"]["j"] - r["h016"]["j"]) > 1e-9],
+                                 if abs(r["submission"]["j"] - r["control"]["j"]) > 1e-9],
         }
     result["summary"] = summary
-    result["h016_score"] = float(250 * sum(v["h016_mean_j"] for v in summary.values()))
-    result["h031_score"] = float(250 * sum(v["h031_mean_j"] for v in summary.values()))
+    result["control_score"] = float(250 * sum(v["control_mean_j"] for v in summary.values()))
+    result["submission_score"] = float(250 * sum(v["submission_mean_j"] for v in summary.values()))
     rng = np.random.default_rng(34001)
     sampled = np.zeros(10000)
     for delta in case_deltas:
@@ -88,7 +88,7 @@ def main():
     result["delta_ci95"] = [float(x) for x in np.quantile(sampled, [0.025, 0.975])]
     result["elapsed_seconds"] = time.monotonic() - start_time
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-    print("score", result["h016_score"], result["h031_score"],
+    print("score", result["control_score"], result["submission_score"],
           "delta_ci95", result["delta_ci95"], flush=True)
 
 
