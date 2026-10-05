@@ -10,6 +10,7 @@
 [![PettingZoo](https://img.shields.io/badge/PettingZoo-MPE2-green.svg)](https://pettingzoo.farama.org/environments/mpe2/)
 [![Gymnasium](https://img.shields.io/badge/Gymnasium-API-blue.svg)](https://gymnasium.farama.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![DeepWiki](https://img.shields.io/badge/DeepWiki-robocup--changsha-blue?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyek0xMSAxN0g5VjdoMnYxMHptNCAwaC0yVjdoMnYxMHoiLz48L3N2Zz4=)](https://deepwiki.com/HNU-BigHeroX/robocup_changsha)
 
 *多机器人协同覆盖 · 有限观测下的策略评测*
 
