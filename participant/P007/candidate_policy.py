@@ -1,4 +1,4 @@
-"""H031：基于局部观测的覆盖价值分配。"""
+"""基于局部观测的覆盖价值分配。"""
 
 from __future__ import annotations
 

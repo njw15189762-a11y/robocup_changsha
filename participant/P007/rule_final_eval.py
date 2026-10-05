@@ -1,4 +1,4 @@
-"""H031：在相同场景种子上复核最终局部分配策略。"""
+"""在相同场景种子上复核最终局部分配策略。"""
 from __future__ import annotations
 
 from coverage_bench.envs.factory import make_training_env
@@ -28,9 +28,9 @@ def evaluate(config, start, count):
     try:
         for seed in range(start, start+count):
             row = {'seed': seed}
-            for mode in ('h016', 'candidate'):
+            for mode in ('control', 'submission'):
                 obs, _ = env.reset(seed=seed)
-                actors = policies(env.config, seed, mode == 'candidate')
+                actors = policies(env.config, seed, mode == 'submission')
                 coverage = collisions = 0
                 for _ in range(env.config.horizon):
                     actions = {name: policy.act(obs[name]) for name, policy in actors.items()}
@@ -43,7 +43,7 @@ def evaluate(config, start, count):
                                   env.config.horizon,
                              'target_steps': coverage, 'collision_steps': collisions,
                              'interventions': sum(int(p.interventions) for p in actors.values())
-                             if mode == 'candidate' else 0}
+                             if mode == 'submission' else 0}
             rows.append(row)
             if (seed-start+1) % 20 == 0:
                 print('evaluated', start, seed-start+1, flush=True)
